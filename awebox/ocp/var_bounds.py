@@ -47,7 +47,7 @@ def get_variable_bounds(nlp_options, V, model):
 
         [coll_flag, var_type, kdx, ddx, name, dim] = struct_op.get_V_index(canonical)
 
-        if dim == 0:
+        if (dim == 0 and var_type != 'us'):
 
             if not coll_flag:
 
@@ -75,9 +75,13 @@ def get_variable_bounds(nlp_options, V, model):
 
                 [vars_lb, vars_ub] = assign_phase_fix_bounds(nlp_options, model, vars_lb, vars_ub, coll_flag, var_type, kdx, ddx, name)
 
+        elif (var_type == 'us'):
+            vars_lb['coll_var', kdx, ddx, 'us'] = 0.0
+
     # bounds on slacks (convention: h(x) < 0)
     if 'us' in list(V.keys()):
         vars_ub['us'] = 0.0
+
 
     return [vars_lb, vars_ub]
 
