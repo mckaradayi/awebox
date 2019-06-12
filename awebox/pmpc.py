@@ -69,6 +69,7 @@ class Pmpc(object):
         options['nlp']['d'] = self.__d
         options['nlp']['scheme'] = self.__scheme
         options['nlp']['collocation']['u_param'] = 'poly'
+        options['nlp']['slack_constraints'] = mpc_options['slack_inequalities']
         options['visualization']['cosmetics']['plot_ref'] = True
         fixed_params = {}
         for name in list(self.__pocp_trial.model.variables_dict['theta'].keys()):
@@ -228,17 +229,20 @@ class Pmpc(object):
 
         logging.info("Generate MPC {} objective...".format(self.__cost_type))
 
-        # initialize
-        f = 0.0
-
         # weighting matrices
         Q = np.eye(self.__trial.model.variables['xd'].shape[0])
         R = np.eye(self.__trial.model.variables['u'].shape[0])
         Z = np.eye(self.__trial.model.variables['xa'].shape[0])
+        S = 1e3*np.eye(self.__trial.model.constraints['inequality'].shape[0])
+
+        if self.__trial.options['nlp']['slack_constraints']:
+            weight_args = [Q,R,Z,S]
+        else:
+            weight_args = [Q,R,Z]
 
         # create tracking function
         from scipy.linalg import block_diag
-        tracking_cost = self.__create_tracking_cost_fun(block_diag(Q,R,Z))
+        tracking_cost = self.__create_tracking_cost_fun(block_diag(*weight_args))
         cost_map = tracking_cost.map(self.__N)
 
         # cost function arguments
@@ -253,6 +257,11 @@ class Pmpc(object):
 
         # integrate tracking cost function
         f = ct.mtimes(ct.vertcat(*quad_weights).T, cost_map(*cost_args).T)/self.__N
+
+        # linear cost on slacks
+        if self.__trial.options['nlp']['slack_constraints']:
+            slack_cost = np.sum(list(map(lambda x: ct.sum2(ct.mtimes(self.__trial.nlp.Collocation.quad_weights[np.newaxis,:],ct.horzcat(*x).T)), self.__trial.nlp.V['coll_var',:,:,'us'])))
+            f += 1e3*slack_cost/self.__N
 
         return f
 
@@ -375,14 +384,23 @@ class Pmpc(object):
 
         ip_dict = {}
         V_ref = self.__trial.nlp.V(0.0)
-        for var_type in ['xd','u','xa']:
+        if self.__trial.options['nlp']['slack_constraints']:
+            var_list = ['xd','xa','u','us']
+        else:
+            var_list = ['xd','xa','u']
+
+        for var_type in var_list:
             ip_dict[var_type] = []
-            for name in list(self.__trial.model.variables_dict[var_type].keys()):
-                for dim in range(self.__trial.model.variables_dict[var_type][name].shape[0]):
-                    if var_type == 'xd':
-                        ip_dict[var_type].append(self.__interpolator(t_grid_x, name, dim,var_type))
-                    else:
-                        ip_dict[var_type].append(self.__interpolator(t_grid, name, dim,var_type))
+            if var_type == 'us':
+                nh = self.__trial.model.constraints['inequality'].shape[0]
+                ip_dict[var_type].append(np.zeros((nh, t_grid.shape[0])))
+            else:
+                for name in list(self.__trial.model.variables_dict[var_type].keys()):
+                    for dim in range(self.__trial.model.variables_dict[var_type][name].shape[0]):
+                        if var_type == 'xd':
+                            ip_dict[var_type].append(self.__interpolator(t_grid_x, name, dim,var_type))
+                        else:
+                            ip_dict[var_type].append(self.__interpolator(t_grid, name, dim,var_type))
             if self.__mpc_options['ref_interpolator'] == 'poly':
                 ip_dict[var_type] = ct.horzcat(*ip_dict[var_type]).T
             elif self.__mpc_options['ref_interpolator'] == 'spline':
@@ -397,7 +415,7 @@ class Pmpc(object):
                     V_list.append(ip_dict['xd'][:,counter_x])
                     counter_x += 1
                 else:
-                    for var_type in ['xd','xa','u']:
+                    for var_type in var_list:
                         if var_type == 'xd':
                             V_list.append(ip_dict[var_type][:,counter_x])
                             counter_x += 1
@@ -454,6 +472,9 @@ class Pmpc(object):
             self.__w0['coll_var',k,:,'u']  = self.__w0['coll_var',k+1,:,'u']
             self.__w0['coll_var',k,:,'xa'] = self.__w0['coll_var',k+1,:,'xa']
             self.__w0['xd',k] = self.__w0['xd',k+1]
+
+            if self.__trial.options['nlp']['slack_constraints']:
+                self.__w0['coll_var',k,:,'us']  = self.__w0['coll_var',k+1,:,'us']
 
         return None
 
