@@ -587,6 +587,12 @@ def get_V_index(canonical):
         kdx = None
         ddx = None
 
+        if length > 5:
+            kdx = canonical[1]
+            ddx = canonical[2]
+            name = canonical[3]
+            dim = canonical[4]
+
         if length == 5:
             kdx = canonical[1]
             ddx = canonical[2]
