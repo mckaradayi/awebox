@@ -54,6 +54,7 @@ options['mpc']['max_cpu_time'] = 2000
 options['mpc']['N'] = N_mpc
 options['mpc']['plot_flag'] = False
 options['mpc']['ref_interpolator'] = 'spline'
+options['mpc']['slack_constraints'] = True
 
 # simulation options
 options['sim']['number_of_finite_elements'] = 20 # integrator steps within one sampling time
