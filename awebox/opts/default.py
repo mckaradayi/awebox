@@ -443,6 +443,7 @@ def set_default_options(default_user_options, help_options):
         ('mpc', None,  None,    'max_cpu_time', 2000,               ('MPC solver max cpu time', None), 'x'),
         ('mpc', None,  None,    'plot_flag',    False,              ('MPC plot solution for each step', None), 'x'),
         ('mpc', None,  None,    'ref_interpolator','spline',        ('periodic reference interpolation method', None), 'x'),
+        ('mpc', None,  None,    'slack_inequalities',True,          ('use soft constraints or not', [True, False]), 'x'),
 
         ### visualization options
         ('visualization', 'cosmetics', 'trajectory', 'colors',      kite_colors,    ('list of colors for trajectory', None), 'x'),
