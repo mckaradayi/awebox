@@ -224,18 +224,21 @@ class Collocation(object):
 
         return xp_jk
 
-    def get_collocation_variables_struct(self, variables_dict, u_param):
+    def get_collocation_variables_struct(self, model, nlp_options):
 
         entry_list = [
-            cas.entry('xd', struct = variables_dict['xd']),
-            cas.entry('xa', struct = variables_dict['xa'])
+            cas.entry('xd', struct = model.variables_dict['xd']),
+            cas.entry('xa', struct = model.variables_dict['xa'])
         ]
 
-        if 'xl' in list(variables_dict.keys()):
-            entry_list += [cas.entry('xl', struct = variables_dict['xl'])]
+        if 'xl' in list(model.variables_dict.keys()):
+            entry_list += [cas.entry('xl', struct = model.variables_dict['xl'])]
 
-        if u_param == 'poly':
-            entry_list += [cas.entry('u', struct = variables_dict['u'])]
+        if nlp_options['collocation']['u_param'] == 'poly':
+            entry_list += [cas.entry('u', struct = model.variables_dict['u'])]
+
+        if nlp_options['slack_constraints']:
+            entry_list += [cas.entry('us', struct = model.constraints_dict['inequality'])]
 
         return cas.struct_symMX(entry_list)
 
