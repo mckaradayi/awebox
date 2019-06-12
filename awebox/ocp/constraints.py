@@ -191,7 +191,7 @@ def append_path_constraints(g_list, g_bounds, path_constraints, path_constraints
 
         # append constraint bounds
         for cstr_type in list(path_constraints.keys()):
-            g_bounds = append_constraint_bounds(g_bounds, 'equality', path_constraints[cstr_type].size()[0])
+            g_bounds = append_constraint_bounds(g_bounds, cstr_type, path_constraints[cstr_type].size()[0])
 
     else:
 

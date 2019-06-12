@@ -82,7 +82,7 @@ def setup_nlp_v(nlp_numerics_options, model, formulation, Collocation):
 
         # add collocation node variables
         d = nlp_numerics_options['collocation']['d'] # interpolating polynomial order
-        coll_var = Collocation.get_collocation_variables_struct(variables_dict, nlp_numerics_options['collocation']['u_param'])
+        coll_var = Collocation.get_collocation_variables_struct(model, nlp_numerics_options)
         entry_tuple += (cas.entry('coll_var', struct = coll_var, repeat= [nk,d]),)
 
     elif nlp_numerics_options['discretization'] == 'multiple_shooting':
@@ -312,6 +312,7 @@ def discretize(nlp_numerics_options, model, formulation):
         scheme = nlp_numerics_options['collocation']['scheme']
         Collocation = collocation.Collocation(nk, d, scheme)
         Multiple_shooting = None
+        slacks = None
 
     elif nlp_numerics_options['discretization'] == 'multiple_shooting':
         direct_collocation = False
@@ -431,9 +432,12 @@ def discretize(nlp_numerics_options, model, formulation):
                 [g_list, g_bounds] = constraints.append_collocation_constraints(
                                         g_list, g_bounds, coll_dynamics[:,kdx*d+ddx])
 
+                if nlp_numerics_options['slack_constraints']:
+                    slacks = V['coll_var',kdx, ddx, 'us']
+
                 # at each (except for first node) collocation node, path constraints should be satisfied
                 [g_list, g_bounds] = constraints.append_path_constraints(
-                                        g_list, g_bounds, path_constraints, coll_constraints[:,kdx*d+ddx])
+                                        g_list, g_bounds, path_constraints, coll_constraints[:,kdx*d+ddx], slacks)
 
                 # compute outputs for this time interval
                 Outputs_list.append(coll_outputs[:,kdx*d+ddx])
