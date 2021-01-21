@@ -511,6 +511,8 @@ def generate_tether_drag_forces(options, variables, parameters, atmos, wind, out
         simple_lower = outputs['tether_aero']['simple_lower' + str(n)]
         trivial_upper = outputs['tether_aero']['trivial_upper' + str(n)]
         trivial_lower = outputs['tether_aero']['trivial_lower' + str(n)]
+        integral_upper = outputs['tether_aero']['integral_upper' + str(n)]
+        integral_lower = outputs['tether_aero']['integral_lower' + str(n)]
 
         tether_model = options['tether']['tether_drag']['model_type']
 
@@ -523,6 +525,9 @@ def generate_tether_drag_forces(options, variables, parameters, atmos, wind, out
         elif tether_model == 'trivial':
             drag_parent = trivial_lower
             drag_node = trivial_upper
+        elif tether_model == 'integral':
+            drag_parent = integral_lower
+            drag_node = integral_upper
         elif tether_model == 'not_in_use':
             drag_parent = np.zeros((3, 1))
             drag_node = np.zeros((3, 1))

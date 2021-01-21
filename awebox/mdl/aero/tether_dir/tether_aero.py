@@ -28,7 +28,7 @@ takes states, finds approximate total force and moment for a tether element
 finds equivalent forces corresponding to the total force and moment.
 _python-3.5 / casadi-3.4.5
 - author: elena malz, chalmers 2016
-- edited: rachel leuthold, jochem de schutter alu-fr 2017
+- edited: rachel leuthold, jochem de schutter alu-fr 2017, thomas haas kul 2021
 '''
 
 import casadi.tools as cas
@@ -41,6 +41,7 @@ def get_forces(model_options, variables, atmos, wind, n, cd_tether_fun, outputs,
     if 'tether_aero' not in list(outputs.keys()):
         outputs['tether_aero'] = {}
 
+    [integral_lower, integral_upper] = get_trivial_forces(model_options, variables, atmos, wind, n, parameters,architecture)
     [trivial_lower, trivial_upper] = get_trivial_forces(model_options, variables, atmos, wind, n, parameters,architecture)
     [physical_lower, physical_upper] = get_physical_forces(model_options, variables, atmos, wind, n, cd_tether_fun, architecture)
     [simple_lower, simple_upper] = get_simple_forces(model_options, variables, atmos, wind, n, cd_tether_fun, architecture)
@@ -51,7 +52,8 @@ def get_forces(model_options, variables, atmos, wind, n, cd_tether_fun, outputs,
     ua = (ua_upper + ua_lower)/2.
     reynolds = get_reynolds_number(atmos, ua, diam, q_upper, q_lower)
 
-
+    outputs['tether_aero']['integral_upper' + str(n)] = integral_upper
+    outputs['tether_aero']['integral_lower' + str(n)] = integral_lower
     outputs['tether_aero']['physical_upper' + str(n)] = physical_upper
     outputs['tether_aero']['physical_lower' + str(n)] = physical_lower
     outputs['tether_aero']['simple_upper' + str(n)] = simple_upper
@@ -61,6 +63,22 @@ def get_forces(model_options, variables, atmos, wind, n, cd_tether_fun, outputs,
     outputs['tether_aero']['reynolds' + str(n)] = reynolds
 
     return outputs
+
+def get_integral_forces(model_options, variables, atmos, wind, n, parameters, architecture):
+
+    [diam, q_upper, q_lower, dq_upper, dq_lower, ua_upper, ua_lower] = get_upper_lower_q_and_dq(model_options,
+                                                                                                  variables, wind, n,architecture)
+
+    length = vect_op.norm(q_upper - q_lower)
+    rho = atmos.get_density(q_upper[2])
+    u_a = wind.get_velocity(q_upper[2]) - dq_upper
+    cd = parameters['theta0','tether','cd']
+    drag_force = (1.0/8.0) * rho * cd * (diam * length) * vect_op.smooth_norm(u_a, 1e-6) * u_a 
+
+    force_upper = 1.0 * drag_force
+    force_lower = 0.0 * drag_force
+
+    return [force_lower, force_upper]
 
 def get_trivial_forces(model_options, variables, atmos, wind, n, parameters, architecture):
 

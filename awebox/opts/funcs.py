@@ -711,7 +711,7 @@ def share_aerodynamics_options(options, options_tree, help_options):
         options_tree.append(('solver', 'initialization', None, 'fnorm', 'unit_length', ('induction factor [-]', None),'x'))
 
     ## tether drag
-    tether_drag_descript =  ('model to approximate the tether drag on the tether nodes', ['trivial', 'simple', 'equivalence', 'not_in_use'])
+    tether_drag_descript =  ('model to approximate the tether drag on the tether nodes', ['integral', 'trivial', 'simple', 'equivalence', 'not_in_use'])
     options_tree.append(('model', 'tether', 'tether_drag', 'model_type', user_options['tether_drag_model'], tether_drag_descript,'x'))
     options_tree.append(('formulation', None, None, 'tether_drag_model', user_options['tether_drag_model'], tether_drag_descript,'x'))
 

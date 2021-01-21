@@ -110,6 +110,12 @@ class Wind:
         _, taux_opt = lagr_interpol.smooth_lagrange_poly(self.heights, xwind)
         _, tauy_opt = lagr_interpol.smooth_lagrange_poly(self.heights, ywind)
 
+        print('')
+        print('Lagrange points')
+        print(taux_opt)
+        print(tauy_opt)
+        print('')
+
         self.taux_opt = taux_opt
         self.tauy_opt = tauy_opt
 

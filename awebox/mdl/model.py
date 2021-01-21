@@ -36,7 +36,6 @@ import time
 from . import dae
 from awebox.logger.logger import Logger as awelogger
 
-
 class Model(object):
     def __init__(self):
         self.__status = 'Model not yet built.'

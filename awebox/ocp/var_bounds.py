@@ -107,8 +107,8 @@ def assign_phase_fix_bounds(nlp_options, model, vars_lb, vars_ub, coll_flag, var
             vars_ub[var_type, 0, name] = nlp_options['pumping_range'][0]
 
 
-        if kdx == round(nlp_options['n_k'] * nlp_options['phase_fix_reelout']) and (not coll_flag) and nlp_options['pumping_range'][1]:
-            vars_lb[var_type, kdx, name] = nlp_options['pumping_range'][1]
-            vars_ub[var_type, kdx, name] = nlp_options['pumping_range'][1]
+        #if kdx == round(nlp_options['n_k'] * nlp_options['phase_fix_reelout']) and (not coll_flag) and nlp_options['pumping_range'][1]:
+            #vars_lb[var_type, kdx, name] = nlp_options['pumping_range'][1]
+            #vars_ub[var_type, kdx, name] = nlp_options['pumping_range'][1]
 
     return vars_lb, vars_ub

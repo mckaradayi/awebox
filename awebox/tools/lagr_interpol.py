@@ -66,8 +66,10 @@ def smooth_lagrange_poly(x, y):
     # [ddL,_,_]  = ddL_fun([t,tau])
 
     # minimise tau = fct output, incl penalize curvature
+    #res = 0.1 *  sum([(L_fun(x[k],tau) - y[k])**2 for k in range(d)])[0]
+    #res += sum([ddL_fun(x[k],tau)[0]**2 * 1e5 for k in range(d)])[0]
     res = 0.1 *  sum([(L_fun(x[k],tau) - y[k])**2 for k in range(d)])[0]
-    res += sum([ddL_fun(x[k],tau)[0]**2 * 1e5 for k in range(d)])[0]
+    res += sum([ddL_fun(x[k],tau)[0]**2 * 1e4 for k in range(d)])[0]
 
     Cost= cas.Function('cost',[tau],[res])
     nlp = {'x': tau, 'f': res}

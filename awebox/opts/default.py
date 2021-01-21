@@ -65,7 +65,7 @@ def set_default_user_options(internal_access = False):
         ('user_options',    None,          None,        'kite_standard',         None,               ('possible options',None),'x'),
         ('user_options',    None,          None,        'atmosphere',            'isa',              ('possible options', ['isa', 'uniform']),'x'),
         ('user_options',    None,          None,        'tether_model',          'default',          ('possible options',['default']),'x'),
-        ('user_options',    None,          None,        'tether_drag_model',     'equivalence',      ('possible options',['trivial', 'simple', 'equivalence', 'not_in_use']),'t'),
+        ('user_options',    None,          None,        'tether_drag_model',     'equivalence',      ('possible options',['integral', 'trivial', 'simple', 'equivalence', 'not_in_use']),'t'),
         ('user_options',    None,          None,        'internal_access',       internal_access,    ('Only set internal parameters/options if you know what you are doing', [True, False]),'x'),
     ]
 
