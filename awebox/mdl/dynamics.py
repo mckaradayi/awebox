@@ -474,8 +474,8 @@ def generate_drag_mode_forces(options, variables, parameters, outputs, architect
 
         # compute generator force
         kappa = variables['xd']['kappa{}{}'.format(n, parent)]
-        speed = outputs['aerodynamics']['speed{}'.format(n)]
-        v_app = outputs['aerodynamics']['v_app{}'.format(n)]
+        speed = outputs['aerodynamics']['speed{}'.format(n)] # ua_norm
+        v_app = outputs['aerodynamics']['v_app{}'.format(n)] # ua
         gen_force = kappa*speed*v_app
 
         # store generator force
@@ -637,8 +637,12 @@ def drag_mode_outputs(variables, outputs, architecture):
 
     for n in architecture.kite_nodes:
         parent = architecture.parent_map[n]
-        outputs['power_balance']['P_gen{}'.format(n)] = cas.mtimes(
-                    variables['xd']['dq{}{}'.format(n, parent)].T,
+        #outputs['power_balance']['P_gen{}'.format(n)] = cas.mtimes(
+        #            variables['xd']['dq{}{}'.format(n, parent)].T,
+        #            outputs['aerodynamics']['f_gen{}'.format(n)]
+        #        )
+        outputs['power_balance']['P_gen{}'.format(n)] = -0.8*cas.mtimes(
+                    outputs['aerodynamics']['v_app{}'.format(n)].T,
                     outputs['aerodynamics']['f_gen{}'.format(n)]
                 )
 

@@ -41,7 +41,7 @@ def get_forces(model_options, variables, atmos, wind, n, cd_tether_fun, outputs,
     if 'tether_aero' not in list(outputs.keys()):
         outputs['tether_aero'] = {}
 
-    [integral_lower, integral_upper] = get_trivial_forces(model_options, variables, atmos, wind, n, parameters,architecture)
+    [integral_lower, integral_upper] = get_integral_forces(model_options, variables, atmos, wind, n, parameters,architecture)
     [trivial_lower, trivial_upper] = get_trivial_forces(model_options, variables, atmos, wind, n, parameters,architecture)
     [physical_lower, physical_upper] = get_physical_forces(model_options, variables, atmos, wind, n, cd_tether_fun, architecture)
     [simple_lower, simple_upper] = get_simple_forces(model_options, variables, atmos, wind, n, cd_tether_fun, architecture)

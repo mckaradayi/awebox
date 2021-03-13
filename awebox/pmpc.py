@@ -115,10 +115,18 @@ class Pmpc(object):
         # remove state constraints at k = 0
         self.__trial.nlp.V_bounds['lb']['xd',0] = - np.inf
         self.__trial.nlp.V_bounds['ub']['xd',0] = np.inf
+        # Hardcoded l.119-122:
+        self.__trial.nlp.V_bounds['lb']['coll_var', :, :-1, 'xd'] = -np.inf
+        self.__trial.nlp.V_bounds['ub']['coll_var', :, :-1, 'xd'] = np.inf
+        self.__trial.nlp.V_bounds['lb']['coll_var', :, :-1, 'xa'] = -np.inf
+        self.__trial.nlp.V_bounds['ub']['coll_var', :, :-1, 'xa'] = np.inf
+        #
         g_ub = self.__trial.nlp.g(self.__trial.nlp.g_bounds['ub'])
         for constr in self.__trial.model.constraints_dict['inequality'].keys():
             if constr != 'dcoeff_actuation':
-                g_ub['stage_constraints',0,:,'path_constraints','inequality',constr] = np.inf
+                #g_ub['stage_constraints',0,:,'path_constraints','inequality',constr] = np.inf
+                # Hardcoded replace l.127 by l.129:
+                g_ub['stage_constraints',:,:-1,'path_constraints','inequality',constr] = np.inf
         self.__trial.nlp.g_bounds['ub'] = g_ub.cat
 
         return None
@@ -244,6 +252,11 @@ class Pmpc(object):
         Q = np.eye(self.__trial.model.variables['xd'].shape[0])
         R = np.eye(self.__trial.model.variables['u'].shape[0])
         Z = np.eye(self.__trial.model.variables['xa'].shape[0])
+        P = np.eye(self.__trial.model.variables['xd'].shape[0])
+        #Q = 1e+2*np.eye(self.__trial.model.variables['xd'].shape[0])
+        #R = 1e+0*np.eye(self.__trial.model.variables['u'].shape[0])
+        #Z = 1e-4*np.eye(self.__trial.model.variables['xa'].shape[0])
+        #P = 1e+4*np.eye(self.__trial.model.variables['xd'].shape[0])
 
         # create tracking function
         from scipy.linalg import block_diag
@@ -262,7 +275,11 @@ class Pmpc(object):
 
         # integrate tracking cost function
         f = ct.mtimes(ct.vertcat(*quad_weights).T, cost_map(*cost_args).T)/self.__N
-
+        
+        # terminal cost
+        dxN = self.__trial.nlp.V['xd',-1] - self.__p['ref','xd',-1]
+        f += ct.mtimes(ct.mtimes(dxN.T, P),dxN)
+        
         return f
 
     def __extract_solver_stats(self, sol):
@@ -543,7 +560,16 @@ class Pmpc(object):
         w = ct.SX.sym('w',W.shape[0])
         w_ref = ct.SX.sym('w_ref', W.shape[0])
 
-        return ct.Function('tracking_cost', [w, w_ref], [ct.mtimes((w-w_ref).T,(w-w_ref))])
+        #return ct.Function('tracking_cost', [w, w_ref], [ct.mtimes((w-w_ref).T,(w-w_ref))])
+        f_t = ct.mtimes(
+                ct.mtimes(
+                    (w-w_ref).T,
+                    W
+                ),
+                (w-w_ref)
+        )
+
+        return ct.Function('tracking_cost', [w, w_ref], [f_t])
 
     @property
     def trial(self):
