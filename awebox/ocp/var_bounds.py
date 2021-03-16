@@ -124,17 +124,11 @@ def assign_phase_fix_bounds(nlp_options, model, vars_lb, vars_ub, coll_flag, var
         pumping_range_0_scaled = struct_op.var_si_to_scaled('xd', 'l_t', nlp_options['pumping_range'][0], model.scaling)
         pumping_range_1_scaled = struct_op.var_si_to_scaled('xd', 'l_t', nlp_options['pumping_range'][1], model.scaling)
 
-<<<<<<< HEAD
-        #if kdx == round(nlp_options['n_k'] * nlp_options['phase_fix_reelout']) and (not coll_flag) and nlp_options['pumping_range'][1]:
-            #vars_lb[var_type, kdx, name] = nlp_options['pumping_range'][1]
-            #vars_ub[var_type, kdx, name] = nlp_options['pumping_range'][1]
-=======
-        if kdx == 0 and (not coll_flag) and nlp_options['pumping_range'][0]:
-            vars_lb[var_type, 0, name] = pumping_range_0_scaled
-            vars_ub[var_type, 0, name] = pumping_range_0_scaled
-        if kdx == switch_kdx and (not coll_flag) and nlp_options['pumping_range'][1]:
-            vars_lb[var_type, kdx, name] = pumping_range_1_scaled
-            vars_ub[var_type, kdx, name] = pumping_range_1_scaled
->>>>>>> develop
+        # if kdx == 0 and (not coll_flag) and nlp_options['pumping_range'][0]:
+        #     vars_lb[var_type, 0, name] = pumping_range_0_scaled
+        #     vars_ub[var_type, 0, name] = pumping_range_0_scaled
+        # if kdx == switch_kdx and (not coll_flag) and nlp_options['pumping_range'][1]:
+        #     vars_lb[var_type, kdx, name] = pumping_range_1_scaled
+        #     vars_ub[var_type, kdx, name] = pumping_range_1_scaled
 
     return vars_lb, vars_ub
