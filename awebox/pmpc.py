@@ -573,10 +573,6 @@ class Pmpc(object):
         w = ct.SX.sym('w',W.shape[0])
         w_ref = ct.SX.sym('w_ref', W.shape[0])
 
-<<<<<<< HEAD
-        #return ct.Function('tracking_cost', [w, w_ref], [ct.mtimes((w-w_ref).T,(w-w_ref))])
-=======
->>>>>>> mpc_terminal_cost
         f_t = ct.mtimes(
                 ct.mtimes(
                     (w-w_ref).T,
