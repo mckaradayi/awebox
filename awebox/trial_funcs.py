@@ -2,9 +2,9 @@
 #    This file is part of awebox.
 #
 #    awebox -- A modeling and optimization framework for multi-kite AWE systems.
-#    Copyright (C) 2017-2019 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
+#    Copyright (C) 2017-2020 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
 #                            ALU Freiburg.
-#    Copyright (C) 2018-2019 Thilo Bronnenmeyer, Kiteswarms Ltd.
+#    Copyright (C) 2018-2020 Thilo Bronnenmeyer, Kiteswarms Ltd.
 #    Copyright (C) 2016      Elena Malz, Sebastien Gros, Chalmers UT.
 #
 #    awebox is free software; you can redistribute it and/or
@@ -33,7 +33,6 @@ python version 3.5 / casadi 3.4.5
 import csv
 import collections
 import awebox.tools.vector_operations as vect_op
-import awebox.tools.struct_operations as struct_op
 import awebox.viz.tools as tools
 import casadi.tools as cas
 import numpy as np
@@ -53,7 +52,7 @@ def generate_trial_data_csv(trial, name, freq, rotation_representation):
     plot_dict = interpolate_data(trial, freq)
     write_csv_dict = init_write_csv_dict(plot_dict)
 
-    # write into ,csv
+    # write into .csv
     with open(name + '.csv', 'w') as point_cloud:
         pcdw = csv.DictWriter(point_cloud, delimiter=',', fieldnames=write_csv_dict)
         pcdw.writeheader()
@@ -161,7 +160,9 @@ def write_data_row(pcdw, plot_dict, write_csv_dict, tgrid_ip, k, rotation_repres
                     dcm = []
                     for i in range(9):
                         dcm = cas.vertcat(dcm, plot_dict[variable_type][variable][i][k])
-                    var = vect_op.rotationMatrixToEulerAngles(cas.reshape(dcm,3,3))
+
+                    var = vect_op.rotation_matrix_to_euler_angles(cas.reshape(dcm, 3, 3))
+
                     for index in range(3):
                         write_csv_dict[variable_type + '_' + variable + '_' + str(index)] = str(var[index])
                 elif rotation_representation not in ['euler', 'dcm']:
@@ -237,13 +238,26 @@ def generate_optimal_model(trial, param_options = None):
                 else:
                     parameters['theta0',param_type,param] = param_options[param_type][param]
 
+    # create stage cost function
+    import awebox.ocp.objective as obj
+    import awebox.ocp.discretization as discr
+    reg_costs_fun, reg_costs_struct = obj.get_general_reg_costs_function(trial.model.variables, trial.nlp.V)
+    weights = obj.get_regularization_weights(trial.model.variables, trial.optimization.p_fix_num, trial.options['nlp']).cat
+    refs = struct_op.get_variables_at_time(trial.options['nlp'], trial.nlp.V(trial.optimization.p_fix_num['p','ref']), trial.nlp.Xdot(0.0), trial.model.variables, 0, 0)
+    var = trial.model.variables
+    u_reg = reg_costs_struct(reg_costs_fun(var, refs, weights))['u_regularisation_cost']
+    power = trial.model.integral_outputs_fun(var, trial.model.parameters)
+    cost_weighting = discr.setup_nlp_cost()(trial.optimization.p_fix_num['cost'])
+    stage_cost = - cost_weighting['power']*power/t_f.full()[0][0] + cost_weighting['u_regularisation']*u_reg
+    quadrature = cas.Function('quad', [var, trial.model.parameters], [stage_cost])
+
     # create dae object based on numerical parameters
     import awebox.mdl.dae as dae
     model_dae = dae.Dae(
         variables,
         parameters,
         trial.model.dynamics,
-        trial.model.integral_outputs_fun,
+        quadrature,
         param = 'num')
 
     # build model rootfinder

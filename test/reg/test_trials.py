@@ -2,15 +2,145 @@
 """Template for trial tests
 
 @author: Thilo Bronnenmeyer, kiteswarms 2018
+
+- edit: Rachel Leuthold, Jochem De Schutter ALU-FR 2020
 """
 
-import awebox.trial as awe_trial
-import awebox.opts.kite_data.ampyx_data as ampyx_data
-import awebox.opts.options as options
-import logging
 import collections
 import copy
-logging.basicConfig(filemode='w',format='%(levelname)s:    %(message)s', level=logging.WARNING)
+import logging
+
+import awebox.opts.kite_data.ampyx_data as ampyx_data
+import awebox.opts.kite_data.bubbledancer_data as bubbledancer_data
+import awebox.opts.kite_data.boeing747_data as boeing747_data
+import awebox.opts.options as options
+import awebox.trial as awe_trial
+import awebox.tools.print_operations as print_op
+
+from awebox.logger.logger import Logger as awelogger
+awelogger.logger.setLevel(10)
+
+
+
+logging.basicConfig(filemode='w',format='%(levelname)s:    %(message)s', level=logging.DEBUG)
+
+def test_singe_kite():
+
+    options_dict = generate_options_dict()
+    trial_name = 'single_kite_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+def test_drag_mode():
+
+    options_dict = generate_options_dict()
+    trial_name = 'drag_mode_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+def test_save_trial():
+
+    options_dict = generate_options_dict()
+    trial_name = 'save_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+# def test_multi_tether():
+
+#     options_dict = generate_options_dict()
+#     trial_name = 'multi_tether_trial'
+#     solve_and_check(options_dict[trial_name], trial_name)
+
+#     return None
+
+def test_dual_kite():
+
+    options_dict = generate_options_dict()
+    trial_name = 'dual_kite_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+def test_dual_kite_6_dof():
+
+    options_dict = generate_options_dict()
+    trial_name = 'dual_kite_6_dof_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+def test_small_dual_kite():
+
+    options_dict = generate_options_dict()
+    trial_name = 'small_dual_kite_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+def test_actuator_qaxi():
+
+    options_dict = generate_options_dict()
+    trial_name = 'actuator_qaxi_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+def test_actuator_uaxi():
+
+    options_dict = generate_options_dict()
+    trial_name = 'actuator_uaxi_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+def test_actuator_qasym():
+
+    options_dict = generate_options_dict()
+    trial_name = 'actuator_qasym_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+def test_actuator_uasym():
+
+    options_dict = generate_options_dict()
+    trial_name = 'actuator_uasym_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+# def test_actuator_comparison():
+#
+#     options_dict = generate_options_dict()
+#     trial_name = 'actuator_comparison_trial'
+#     solve_and_check(options_dict[trial_name], trial_name)
+#
+#     return None
+
+def test_dual_kite_tracking():
+
+    options_dict = generate_options_dict()
+    trial_name = 'dual_kite_tracking_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+def test_dual_kite_tracking_winch():
+
+    options_dict = generate_options_dict()
+    trial_name = 'dual_kite_tracking_winch_trial'
+    solve_and_check(options_dict[trial_name], trial_name)
+
+    return None
+
+def test_vortex_trial():
+
+    options_dict = generate_options_dict()
+    trial_name = 'vortex_trial'
+    solve_trial(options_dict[trial_name], trial_name)
+
+    return None
 
 def generate_options_dict():
     """
@@ -18,38 +148,75 @@ def generate_options_dict():
     :return: dictionary with trial options
     """
 
-    single_kite_options = options.Options(internal_access = True)
-    dual_kite_options = options.Options(internal_access = True)
-    dual_kite_6_dof_options = options.Options(internal_access = True)
-
     # set options
+    single_kite_options = options.Options(internal_access = True)
     single_kite_options['user_options']['system_model']['architecture'] = {1:0}
-    single_kite_options['user_options']['trajectory']['lift_mode']['windings'] = 5
+    single_kite_options['user_options']['trajectory']['lift_mode']['windings'] = 3
     single_kite_options['user_options']['kite_standard'] = ampyx_data.data_dict()
     single_kite_options['user_options']['system_model']['kite_dof'] = 3
     single_kite_options['user_options']['induction_model'] = 'not_in_use'
-    single_kite_options['user_options']['tether_drag_model'] = 'simple'
+    single_kite_options['user_options']['tether_drag_model'] = 'split'
 
+    drag_mode_options = copy.deepcopy(single_kite_options)
+    drag_mode_options['user_options']['trajectory']['system_type'] = 'drag_mode'
+    drag_mode_options['quality']['test_param']['power_balance_thresh'] = 2.
+
+    save_trial_options = copy.deepcopy(single_kite_options)
+    save_trial_options['solver']['save_trial'] = True
+
+    multi_tether_options = copy.deepcopy(single_kite_options)
+    multi_tether_options['user_options']['tether_drag_model'] = 'multi'
+
+    dual_kite_options = copy.deepcopy(single_kite_options)
     dual_kite_options['user_options']['system_model']['architecture'] = {1:0, 2:1, 3:1}
-    dual_kite_options['user_options']['trajectory']['lift_mode']['windings'] = 5
-    dual_kite_options['user_options']['kite_standard'] = ampyx_data.data_dict()
-    dual_kite_options['user_options']['system_model']['kite_dof'] = 3
-    dual_kite_options['user_options']['induction_model'] = 'not_in_use'
-    dual_kite_options['user_options']['tether_drag_model'] = 'simple'
-    dual_kite_options['solver']['save_trial'] = True
 
-    dual_kite_6_dof_options['user_options']['system_model']['architecture'] = {1:0, 2:1, 3:1}
-    dual_kite_6_dof_options['user_options']['trajectory']['lift_mode']['windings'] = 5
-    dual_kite_6_dof_options['user_options']['kite_standard'] = ampyx_data.data_dict()
+    dual_kite_6_dof_options = copy.deepcopy(dual_kite_options)
     dual_kite_6_dof_options['user_options']['system_model']['kite_dof'] = 6
-    dual_kite_6_dof_options['user_options']['induction_model'] = 'not_in_use'
-    dual_kite_6_dof_options['user_options']['tether_drag_model'] = 'simple'
+
+    small_dual_kite_options = copy.deepcopy(dual_kite_6_dof_options)
+    small_dual_kite_options['user_options']['kite_standard'] = bubbledancer_data.data_dict()
+    small_dual_kite_options['user_options']['trajectory']['lift_mode']['windings'] = 1
+
+    actuator_qaxi_options = options.Options(internal_access=True)
+    actuator_qaxi_options['user_options']['system_model']['architecture'] = {1: 0, 2: 1, 3: 1}
+    actuator_qaxi_options['user_options']['kite_standard'] = ampyx_data.data_dict()
+    actuator_qaxi_options['user_options']['system_model']['kite_dof'] = 6
+    actuator_qaxi_options['user_options']['tether_drag_model'] = 'split'
+    actuator_qaxi_options['user_options']['induction_model'] = 'actuator'
+    actuator_qaxi_options['model']['aero']['actuator']['steadyness'] = 'quasi-steady'
+    actuator_qaxi_options['model']['aero']['actuator']['symmetry'] = 'axisymmetric'
+    actuator_qaxi_options['user_options']['trajectory']['lift_mode']['windings'] = 1
+
+    actuator_uaxi_options = copy.deepcopy(actuator_qaxi_options)
+    actuator_uaxi_options['model']['aero']['actuator']['steadyness'] = 'unsteady'
+
+    actuator_qasym_options = copy.deepcopy(actuator_qaxi_options)
+    actuator_qasym_options['model']['aero']['actuator']['symmetry'] = 'asymmetric'
+    actuator_qasym_options['model']['aero']['actuator']['a_range'] = [-0.06, 0.06]
+
+    actuator_uasym_options = copy.deepcopy(actuator_qasym_options)
+    actuator_uasym_options['model']['aero']['actuator']['steadyness'] = 'unsteady'
+
+    actuator_comparison_options = copy.deepcopy(actuator_qaxi_options)
+    actuator_comparison_options['model']['aero']['actuator']['steadyness_comparison'] = ['q', 'u']
+    actuator_comparison_options['user_options']['system_model']['kite_dof'] = 6
+
+    vortex_options = options.Options(internal_access=True)
+    vortex_options['user_options']['system_model']['architecture'] = {1: 0}
+    vortex_options['user_options']['trajectory']['lift_mode']['windings'] = 1
+    vortex_options['user_options']['kite_standard'] = ampyx_data.data_dict()
+    vortex_options['user_options']['system_model']['kite_dof'] = 6
+    vortex_options['user_options']['induction_model'] = 'vortex'
+    vortex_options['user_options']['tether_drag_model'] = 'split'
+    vortex_options['nlp']['n_k'] = 8
+    vortex_options['model']['aero']['vortex']['wake_nodes'] = 10
+    vortex_options['model']['aero']['vortex']['representation'] = 'alg'
 
     dual_kite_tracking_options = copy.deepcopy(dual_kite_6_dof_options)
     dual_kite_tracking_options['user_options']['trajectory']['type'] = 'tracking'
     dual_kite_tracking_options['user_options']['trajectory']['lift_mode']['windings'] = 1
     dual_kite_tracking_options['user_options']['trajectory']['tracking']['fix_tether_length'] = True
-    dual_kite_tracking_options['nlp']['n_k'] = 10
+    dual_kite_tracking_options['nlp']['n_k'] = 20
 
     dual_kite_tracking_winch_options = copy.deepcopy(dual_kite_tracking_options)
     dual_kite_tracking_winch_options['user_options']['trajectory']['tracking']['fix_tether_length'] = False
@@ -70,8 +237,18 @@ def generate_options_dict():
     # define options list
     options_dict = collections.OrderedDict()
     options_dict['single_kite_trial'] = single_kite_options
+    options_dict['drag_mode_trial'] = drag_mode_options
+    options_dict['save_trial'] = save_trial_options
+    # options_dict['multi_tether_trial'] = multi_tether_options
     options_dict['dual_kite_trial'] = dual_kite_options
+    options_dict['small_dual_kite_trial'] = small_dual_kite_options
     options_dict['dual_kite_6_dof_trial'] = dual_kite_6_dof_options
+    options_dict['actuator_qaxi_trial'] = actuator_qaxi_options
+    options_dict['actuator_uaxi_trial'] = actuator_uaxi_options
+    options_dict['actuator_qasym_trial'] = actuator_qasym_options
+    options_dict['actuator_uasym_trial'] = actuator_uasym_options
+    # options_dict['actuator_comparison_trial'] = actuator_comparison_options
+    options_dict['vortex_trial'] = vortex_options
     options_dict['dual_kite_tracking_trial'] = dual_kite_tracking_options
     options_dict['dual_kite_tracking_winch_trial'] = dual_kite_tracking_winch_options
     # options_dict['nominal_landing_trial'] = nominal_landing_options
@@ -79,21 +256,6 @@ def generate_options_dict():
 
     return options_dict
 
-def test_trials():
-    """
-    Test all trials that are defined in options_dict
-    :return: None
-    """
-
-    # generate options_dict
-    options_dict = generate_options_dict()
-
-    # loop over trials
-    for trial_name in list(options_dict.keys()):
-        trial_options = options_dict[trial_name]
-        solve_and_check(trial_options, trial_name)
-
-    return None
 
 def solve_and_check(trial_options, trial_name):
     """

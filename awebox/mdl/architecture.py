@@ -2,9 +2,9 @@
 #    This file is part of awebox.
 #
 #    awebox -- A modeling and optimization framework for multi-kite AWE systems.
-#    Copyright (C) 2017-2019 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
+#    Copyright (C) 2017-2020 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
 #                            ALU Freiburg.
-#    Copyright (C) 2018-2019 Thilo Bronnenmeyer, Kiteswarms Ltd.
+#    Copyright (C) 2018-2020 Thilo Bronnenmeyer, Kiteswarms Ltd.
 #    Copyright (C) 2016      Elena Malz, Sebastien Gros, Chalmers UT.
 #
 #    awebox is free software; you can redistribute it and/or
@@ -132,7 +132,35 @@ class Architecture:
         number_siblings = len(siblings)
         return number_siblings
 
+    def get_all_level_siblings(self):
 
+        parent_map = self.__parent_map
+        kite_nodes = self.__kite_nodes
+
+        level_siblings = {}
+        for kite in kite_nodes:
+            parent = parent_map[kite]
+
+            if not (parent in list(level_siblings.keys())):
+                level_siblings[parent] = []
+
+            level_siblings[parent] += [kite]
+
+        return level_siblings
+
+    def node_label(self, node):
+        return str(node) + str(self.__parent_map[node])
+
+    def parent_label(self, node):
+
+        parent = self.__parent_map[node]
+        if node > 1:
+            grandparent = self.__parent_map[parent]
+        else:
+            grandparent = 0
+
+        return str(parent) + str(grandparent)
+        
     @property
     def parent_map(self):
         """parent node map"""

@@ -2,9 +2,9 @@
 #    This file is part of awebox.
 #
 #    awebox -- A modeling and optimization framework for multi-kite AWE systems.
-#    Copyright (C) 2017-2019 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
+#    Copyright (C) 2017-2020 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
 #                            ALU Freiburg.
-#    Copyright (C) 2018-2019 Thilo Bronnenmeyer, Kiteswarms Ltd.
+#    Copyright (C) 2018-2020 Thilo Bronnenmeyer, Kiteswarms Ltd.
 #    Copyright (C) 2016      Elena Malz, Sebastien Gros, Chalmers UT.
 #
 #    awebox is free software; you can redistribute it and/or
@@ -35,6 +35,8 @@ import scipy.sparse as sps
 
 import casadi.tools as cas
 import numpy as np
+from awebox.logger.logger import Logger as awelogger
+
 
 def cross(a, b):
     vi = xhat() * (a[1] * b[2] - a[2] * b[1])
@@ -64,24 +66,30 @@ def abs(a):
     abs = smooth_abs(a, 0.)
     return abs
 
-def smooth_abs(a, epsilon=1e-8):
-    try:
-        try:
-            length = a.shape[0]
-        except:
-            length = len(a)
-    except:
-        length = 1
+def smooth_abs(arg, epsilon=1e-8):
 
-    abs = []
-    for idx in range(length):
-        new_entry = smooth_sqrt(a[idx]**2., epsilon)
+    if hasattr(arg, 'shape') and (arg.shape == (1,1)):
+        abs = smooth_sqrt(arg ** 2., epsilon)
 
-        abs = cas.vertcat(abs, new_entry)
+    elif hasattr(arg, 'shape') and (len(arg.shape) > 0):
+        abs = []
+        for idx in range(arg.shape[0]):
+            local = smooth_sqrt(arg[idx] ** 2., epsilon)
+            abs = cas.vertcat(abs, local)
+
+    elif isinstance(arg, list):
+        abs = []
+        for idx in range(len(arg)):
+            local = smooth_sqrt(arg[idx] ** 2., epsilon)
+            abs += [local]
+
+    else:
+        abs = smooth_sqrt(arg ** 2., epsilon)
+
     return abs
 
-def smooth_sqrt(a, epsilon=1e-8):
-    sqrt = (a + epsilon ** 2.) ** 0.5
+def smooth_sqrt(arg, epsilon=1e-8):
+    sqrt = (arg + epsilon ** 2.) ** 0.5
     return sqrt
 
 def normalize(a):
@@ -114,6 +122,23 @@ def angle_between(a, b):
     theta = np.arctan2(norm(cross(a, b)), dot(a, b))
 
     return theta
+
+def angle_between_resi(a, b, theta):
+    resi = np.tan(theta) * dot(a, b) - norm(cross(a, b))
+    return resi
+
+def zeros_mx(shape):
+    return cas.MX.zeros(shape[0], shape[1])
+
+def zeros_sx(shape):
+    return cas.SX.zeros(shape[0], shape[1])
+
+def ones_mx(shape):
+    return cas.MX.ones(shape[0], shape[1])
+
+def ones_sx(shape):
+    return cas.SX.ones(shape[0], shape[1])
+
 
 def xhat():
     return xhat_np()
@@ -160,57 +185,24 @@ def zhat_np():
     zhat_np = np.array(cas.vertcat(0., 0., 1.))
     return zhat_np
 
-def rotation_matrix(theta, phi, psi):
-    # rotation angles are defined positive, for clockwise rotation when
-    # looking from origin along positive axis
-
-    ori_pre_rot = np.eye(3)
-
-    rot_x = cas.MX.zeros(3, 3)
-    rot_x[0, 0] = 1.0
-    rot_x[1, 1] = np.cos(phi)
-    rot_x[1, 2] = np.sin(phi)
-    rot_x[2, 1] = -1.0 * np.sin(phi)
-    rot_x[2, 2] = np.cos(phi)
-
-    rot_y = cas.MX.zeros(3, 3)
-    rot_y[0, 0] = np.cos(theta)
-    rot_y[0, 2] = -1.0 * np.sin(theta)
-    rot_y[1, 1] = 1.0
-    rot_y[2, 0] = np.sin(theta)
-    rot_y[2, 2] = np.cos(theta)
-
-    rot_z = cas.MX.zeros(3, 3)
-    rot_z[0, 0] = np.cos(psi)
-    rot_z[0, 1] = np.sin(psi)
-    rot_z[1, 0] = -1.0 * np.sin(psi)
-    rot_z[1, 1] = np.cos(psi)
-    rot_z[2, 2] = 1.0
-
-    ori_post_rot = cas.mtimes(cas.mtimes(rot_x, rot_y), cas.mtimes(rot_z, ori_pre_rot))
-
-    return ori_post_rot
-
-def null(arg_array, eps=1e-15):
-    u, s, vh = scipy.linalg.svd(arg_array)
-    null_mask = (s <= eps)
-    null_space = scipy.compress(null_mask, vh, axis=0)
-    return scipy.transpose(null_space)
-
-def spy(matrix, tol=0.1, color=True):
+def spy(matrix, tol=0.1, color=True, title=''):
     fig = plt.figure()
     fig.clf()
 
     matrix = sps.csr_matrix(matrix)
 
+    elements = matrix.shape[0]
+    markersize = (1./float(elements)) * 500.
+
     if color:
-        matrix_dense = np.abs(matrix.todense())
+        matrix_dense = matrix.todense()
         plt.imshow(matrix_dense, interpolation='none', cmap='binary')
         plt.colorbar()
     else:
-        plt.spy(matrix, precision=tol)
+        plt.spy(matrix, precision=tol, markersize=markersize)
 
-    plt.show()
+    plt.title(title)
+
 
 def skew(vec):
     " creates skew-symmetric matrix"
@@ -224,55 +216,86 @@ def skew(vec):
 
 def unskew(A):
     "Unskew matrix to vector"
-    B = 0.5*np.array(
-        [
-            A[2,1]-A[1,2],
-            A[0,2]-A[2,0],
-            A[1,0]-A[0,1]
-        ]
-    )
-    return B[:,np.newaxis]
 
-def rot_op(R, A):
+    B = 0.5*cas.vertcat(
+        A[2,1]-A[1,2],
+        A[0,2]-A[2,0],
+        A[1,0]-A[0,1]
+    )
+    return B
+
+def rotation(R, A):
     "Rotation operator as defined in Gros2013b"
     return  unskew(cas.mtimes(R.T,A))
 
-def jacobian_dcm(expr, xd_si, var, kite, kparent):
+def jacobian_dcm(expr, xd_si, variables_scaled, kite, parent):
     """ Differentiate expression w.r.t. kite direct cosine matrix"""
 
-    dcm_si = xd_si['r{}{}'.format(kite, kparent)]
-    dcm_sc = var['xd','r{}{}'.format(kite, kparent)]
-    jac_dcm = rot_op(
+    dcm_si = xd_si['r{}{}'.format(kite, parent)]
+    dcm_scaled = variables_scaled['xd', 'r{}{}'.format(kite, parent)]
+
+    jac_dcm = rotation(
             cas.reshape(dcm_si, (3,3)),
-            cas.reshape(cas.jacobian(expr, dcm_sc), (3,3))
+            cas.reshape(cas.jacobian(expr, dcm_scaled), (3,3))
     ).T
     return jac_dcm
 
 def upper_triangular_inclusive(matrix):
+
+    matrix_resquared = resquare(matrix)
+
     elements = []
-    for r in range(matrix.shape[0]):
-        for c in range(matrix.shape[1]):
+    for r in range(matrix_resquared.shape[0]):
+        for c in range(matrix_resquared.shape[1]):
             if c >= r:
-                elements = cas.vertcat(elements, matrix[r, c])
+                elements = cas.vertcat(elements, matrix_resquared[r, c])
     return elements
 
 def lower_triangular_exclusive(matrix):
+
+    matrix_resquared = resquare(matrix)
+
     elements = []
-    for r in range(matrix.shape[0]):
-        for c in range(matrix.shape[1]):
+    for r in range(matrix_resquared.shape[0]):
+        for c in range(matrix_resquared.shape[1]):
             if c < r:
-                elements = cas.vertcat(elements, matrix[r, c])
+                elements = cas.vertcat(elements, matrix_resquared[r, c])
     return elements
 
-def columnize(var):
-    # only allows 2x2 matrices for variable
+def lower_triangular_inclusive(matrix):
 
-    [counted_rows, counted_columns] = var.shape
+    matrix_resquared = resquare(matrix)
+
+    elements = []
+    for r in range(matrix_resquared.shape[0]):
+        for c in range(matrix_resquared.shape[1]):
+            if c <= r:
+                elements = cas.vertcat(elements, matrix_resquared[r, c])
+    return elements
+
+def columnize(matrix):
+    # only allows 2D matrices for variable
+
+    [counted_rows, counted_columns] = matrix.shape
     number_elements = counted_rows * counted_columns
 
-    column_var = cas.reshape(var, (number_elements, 1))
+    column_var = cas.reshape(matrix, (number_elements, 1))
 
     return column_var
+
+def resquare(column):
+
+    entries = column.shape[0] * column.shape[1]
+    guess_side_dim = np.sqrt(float(entries))
+    can_be_resquared = (np.floor(guess_side_dim) **2. == float(entries))
+
+    if can_be_resquared:
+        side = int(guess_side_dim)
+        return cas.reshape(column, (side, side))
+    else:
+        message = 'column matrix cannot be re-squared. inappropriate number of entries: ' + str(entries)
+        awelogger.logger.error(message)
+        return column
 
 def sign(val, eps=1e-8):
     sign = 2. * unitstep(val, eps) - 1.
@@ -299,7 +322,7 @@ def step_in_out(number, step_in, step_out, eps=1e-4):
     return step
 
 def sum(all_array):
-    sum = cas.mtimes(all_array.T, np.ones(all_array.shape))
+    sum = cas.sum1(all_array)
     return sum
 
 def smooth_max(all_array):
@@ -357,31 +380,33 @@ def estimate_1d_frequency(x, sample_step=1, dt=1.0):
 
 
 # Checks if a matrix is a valid rotation matrix.
-def isRotationMatrix(R):
-    Rt = np.transpose(R)
-    shouldBeIdentity = np.dot(Rt, R)
-    I = np.identity(3)
-    n = np.linalg.norm(I - shouldBeIdentity)
-    return n < 1e-1
+def is_rotation_matrix(dcm, thresh=1.e-1):
 
+    diff = cas.DM.eye(3) - cas.mtimes(dcm.T, dcm)
+    diff_vert = cas.reshape(diff, (9, 1))
+    resi = norm(diff_vert)**0.5
+
+    return resi < thresh
 
 # Calculates rotation matrix to euler angles
 # The result is the same as MATLAB except the order
 # of the euler angles ( x and z are swapped ).
-def rotationMatrixToEulerAngles(R):
-    assert (isRotationMatrix(R))
+def rotation_matrix_to_euler_angles(dcm):
 
-    sy = np.math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+    if not is_rotation_matrix(dcm):
+        awelogger.logger.warning('given rotation matrix is not a member of SO(3).')
+
+    sy = np.math.sqrt(dcm[0, 0] * dcm[0, 0] + dcm[1, 0] * dcm[1, 0])
 
     singular = sy < 1e-6
 
     if not singular:
-        x = np.math.atan2(R[2, 1], R[2, 2])
-        y = np.math.atan2(-R[2, 0], sy)
-        z = np.math.atan2(R[1, 0], R[0, 0])
+        x = np.math.atan2(dcm[2, 1], dcm[2, 2])
+        y = np.math.atan2(-dcm[2, 0], sy)
+        z = np.math.atan2(dcm[1, 0], dcm[0, 0])
     else:
-        x = np.math.atan2(-R[1, 2], R[1, 1])
-        y = np.math.atan2(-R[2, 0], sy)
+        x = np.math.atan2(-dcm[1, 2], dcm[1, 1])
+        y = np.math.atan2(-dcm[2, 0], sy)
         z = 0
 
     return np.array([x, y, z])

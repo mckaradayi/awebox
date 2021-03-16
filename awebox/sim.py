@@ -2,9 +2,9 @@
 #    This file is part of awebox.
 #
 #    awebox -- A modeling and optimization framework for multi-kite AWE systems.
-#    Copyright (C) 2017-2019 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
+#    Copyright (C) 2017-2020 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
 #                            ALU Freiburg.
-#    Copyright (C) 2018-2019 Thilo Bronnenmeyer, Kiteswarms Ltd.
+#    Copyright (C) 2018-2020 Thilo Bronnenmeyer, Kiteswarms Ltd.
 #    Copyright (C) 2016      Elena Malz, Sebastien Gros, Chalmers UT.
 #
 #    awebox is free software; you can redistribute it and/or
@@ -33,7 +33,6 @@ and related models.
 import casadi.tools as ct
 import awebox.pmpc as pmpc
 import awebox.tools.integrator_routines as awe_integrators
-import awebox.tools.struct_operations as struct_op
 import awebox.viz.visualization as visualization
 import awebox.viz.tools as viz_tools
 import copy
@@ -229,7 +228,7 @@ class Simulation:
         """
 
         self.__trial.options['visualization']['cosmetics']['plot_ref'] = True
-        self.__visualization.plot(None, self.__trial.options, None, None, flags, None, None, 'simulation', False, None, recalibrate = False)
+        self.__visualization.plot(None, self.__trial.options, None, None, flags, None, None, 'simulation', False, None, 'plot', recalibrate = False)
 
         return None
 

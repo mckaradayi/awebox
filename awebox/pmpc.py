@@ -2,9 +2,9 @@
 #    This file is part of awebox.
 #
 #    awebox -- A modeling and optimization framework for multi-kite AWE systems.
-#    Copyright (C) 2017-2019 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
+#    Copyright (C) 2017-2020 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
 #                            ALU Freiburg.
-#    Copyright (C) 2018-2019 Thilo Bronnenmeyer, Kiteswarms Ltd.
+#    Copyright (C) 2018-2020 Thilo Bronnenmeyer, Kiteswarms Ltd.
 #    Copyright (C) 2016      Elena Malz, Sebastien Gros, Chalmers UT.
 #
 #    awebox is free software; you can redistribute it and/or
@@ -57,9 +57,14 @@ class Pmpc(object):
         self.__mpc_options = mpc_options
 
         # store model data
+        self.__var_list = ['xd', 'xa', 'u']
+        if 'xl' in self.__pocp_trial.model.variables_dict.keys():
+            self.__var_list.append('xl')
         self.__nx = trial.model.variables['xd'].shape[0]
         self.__nu = trial.model.variables['u'].shape[0]
         self.__nz = trial.model.variables['xa'].shape[0]
+        if 'xl' in self.__var_list:
+            self.__nl = trial.model.variables['xl'].shape[0]
 
         # create mpc trial
         options = copy.deepcopy(trial.options)
@@ -113,20 +118,13 @@ class Pmpc(object):
         self.__trial.visualization.build(self.__trial.model, self.__trial.nlp, 'MPC control', self.__trial.options)
 
         # remove state constraints at k = 0
-        self.__trial.nlp.V_bounds['lb']['xd',0] = - np.inf
-        self.__trial.nlp.V_bounds['ub']['xd',0] = np.inf
-        # Hardcoded l.119-122:
-        self.__trial.nlp.V_bounds['lb']['coll_var', :, :-1, 'xd'] = -np.inf
-        self.__trial.nlp.V_bounds['ub']['coll_var', :, :-1, 'xd'] = np.inf
-        self.__trial.nlp.V_bounds['lb']['coll_var', :, :-1, 'xa'] = -np.inf
-        self.__trial.nlp.V_bounds['ub']['coll_var', :, :-1, 'xa'] = np.inf
-        #
+        for var_type in ['xd', 'xa', 'xddot']:
+            self.__trial.nlp.V_bounds['lb'][var_type,0] = - np.inf
+            self.__trial.nlp.V_bounds['ub'][var_type,0] = np.inf
         g_ub = self.__trial.nlp.g(self.__trial.nlp.g_bounds['ub'])
         for constr in self.__trial.model.constraints_dict['inequality'].keys():
             if constr != 'dcoeff_actuation':
-                #g_ub['stage_constraints',0,:,'path_constraints','inequality',constr] = np.inf
-                # Hardcoded replace l.127 by l.129:
-                g_ub['stage_constraints',:,:-1,'path_constraints','inequality',constr] = np.inf
+                g_ub['path',0,constr] = np.inf
         self.__trial.nlp.g_bounds['ub'] = g_ub.cat
 
         return None
@@ -186,6 +184,7 @@ class Pmpc(object):
         opts['ipopt.max_iter'] = self.__mpc_options['max_iter']
         opts['ipopt.max_cpu_time'] = self.__mpc_options['max_cpu_time']
         opts['jit'] = self.__mpc_options['jit']
+        opts['record_time'] = 1
 
         if awelogger.logger.level > 10:
             opts['ipopt.print_level'] = 0
@@ -249,18 +248,25 @@ class Pmpc(object):
         f = 0.0
 
         # weighting matrices
-        Q = np.eye(self.__trial.model.variables['xd'].shape[0])
-        R = np.eye(self.__trial.model.variables['u'].shape[0])
-        Z = np.eye(self.__trial.model.variables['xa'].shape[0])
-        P = np.eye(self.__trial.model.variables['xd'].shape[0])
-        #Q = 1e+2*np.eye(self.__trial.model.variables['xd'].shape[0])
-        #R = 1e+0*np.eye(self.__trial.model.variables['u'].shape[0])
-        #Z = 1e-4*np.eye(self.__trial.model.variables['xa'].shape[0])
-        #P = 1e+4*np.eye(self.__trial.model.variables['xd'].shape[0])
+        weights = {}
+        for weight in ['Q', 'R', 'P']:
+            if weight in self.__mpc_options.keys():
+                weights[weight] = self.__mpc_options[weight]
+            else:
+                if weight in ['Q', 'P']:
+                    weights[weight] = np.eye(self.__nx)
+                elif weight == 'R':
+                    weights[weight] = np.eye(self.__nu)
+        weights['Z'] = 1e-5*np.ones((self.__nz, self.__nz))
+
+        from scipy.linalg import block_diag
+        W = block_diag(weights['Q'],weights['R'],weights['Z'])
+        if 'xl' in self.__var_list:
+            weights['L'] = 1e-5*np.ones((self.__nl, self.__nl))
+            W = block_diag(W, weights['L'])
 
         # create tracking function
-        from scipy.linalg import block_diag
-        tracking_cost = self.__create_tracking_cost_fun(block_diag(Q,R,Z))
+        tracking_cost = self.__create_tracking_cost_fun(W)
         cost_map = tracking_cost.map(self.__N)
 
         # cost function arguments
@@ -275,11 +281,11 @@ class Pmpc(object):
 
         # integrate tracking cost function
         f = ct.mtimes(ct.vertcat(*quad_weights).T, cost_map(*cost_args).T)/self.__N
-        
+
         # terminal cost
         dxN = self.__trial.nlp.V['xd',-1] - self.__p['ref','xd',-1]
-        f += ct.mtimes(ct.mtimes(dxN.T, P),dxN)
-        
+        f += ct.mtimes(ct.mtimes((dxN.T, weights['P'])),dxN)
+
         return f
 
     def __extract_solver_stats(self, sol):
@@ -287,7 +293,7 @@ class Pmpc(object):
         """
 
         info = self.__solver.stats()
-        self.__log['cpu'].append(info['t_wall_solver'])
+        self.__log['cpu'].append(info['t_wall_total'])
         self.__log['iter'].append(info['iter_count'])
         self.__log['status'].append(info['return_status'])
         self.__log['f'].append(sol['f'])
@@ -354,7 +360,7 @@ class Pmpc(object):
         n_points_x = self.__t_grid_x_coll.shape[0]
         self.__spline_dict = {}
 
-        for var_type in ['xd','u','xa']:
+        for var_type in self.__var_list:
             self.__spline_dict[var_type] = {}
             for name in list(variables_dict[var_type].keys()):
                 self.__spline_dict[var_type][name] = {}
@@ -368,9 +374,9 @@ class Pmpc(object):
                             self.__spline_dict[var_type][name][j] = ct.Function(name+str(j), [ct.SX.sym('t',n_points)], [np.zeros((1,n_points))])
                         else:
                             self.__spline_dict[var_type][name][j] = ct.interpolant(name+str(j), 'bspline', [[0]+time_grid], [values[-1]]+values, {}).map(n_points)
-                    elif var_type == 'xa':
+                    elif var_type in ['xa','xl']:
                         values, time_grid = viz_tools.merge_xa_values(V_opt, var_type, name, j, plot_dict, cosmetics)
-                        self.__spline_dict[var_type][name][j] = ct.interpolant(name+str(j), 'bspline', [[0]+time_grid], [values[-1]]+values, {}).map(n_points)
+                        self.__spline_dict[var_type][name][j] = ct.interpolant(name+str(j), 'bspline', [[0]+time_grid], [values[-1]]+values, {}).map(n_points_x)
 
         def spline_interpolator(t_grid, name, j, var_type):
             """ Interpolate reference on specific time grid for specific variable.
@@ -401,11 +407,11 @@ class Pmpc(object):
 
         ip_dict = {}
         V_ref = self.__trial.nlp.V(0.0)
-        for var_type in ['xd','u','xa']:
+        for var_type in self.__var_list:
             ip_dict[var_type] = []
             for name in list(self.__trial.model.variables_dict[var_type].keys()):
                 for dim in range(self.__trial.model.variables_dict[var_type][name].shape[0]):
-                    if var_type == 'xd':
+                    if var_type in ['xd', 'xa']:
                         ip_dict[var_type].append(self.__interpolator(t_grid_x, name, dim,var_type))
                     else:
                         ip_dict[var_type].append(self.__interpolator(t_grid, name, dim,var_type))
@@ -417,31 +423,36 @@ class Pmpc(object):
         counter = 0
         counter_x = 0
         V_list = []
-        for k in range(self.__N):
-            for j in range(self.__trial.nlp.d+1):
-                if j == 0:
-                    V_list.append(ip_dict['xd'][:,counter_x])
-                    counter_x += 1
-                else:
-                    for var_type in ['xd','xa','u']:
-                        if var_type == 'xd':
-                            V_list.append(ip_dict[var_type][:,counter_x])
-                            counter_x += 1
-                        else:
-                            V_list.append(ip_dict[var_type][:,counter])
-                    counter += 1
-
-        V_list.append(ip_dict['xd'][:,counter_x])
 
         for name in self.__trial.model.variables_dict['theta'].keys():
             if name != 't_f':
                 V_list.append(self.__pocp_trial.optimization.V_opt['theta',name])
             else:
                 V_list.append(self.__N*self.__ts)
+        V_list.append(np.zeros(V_ref['phi'].shape))
+        V_list.append(np.zeros(V_ref['xi'].shape))
 
-        for var_type in ['phi', 'xi']:
-            V_list.append(np.zeros(self.__trial.nlp.V[var_type].shape))
-        V_ref = self.__trial.nlp.V(ct.vertcat(*V_list))
+        for k in range(self.__N):
+            for j in range(self.__trial.nlp.d+1):
+                if j == 0:
+                    for var_type in ['xd', 'xddot','xa']:
+                        if var_type in ['xd','xa']:
+                            V_list.append(ip_dict[var_type][:,counter_x])
+                        else:
+                            V_list.append(np.zeros((self.__nx,1)))
+                    counter_x += 1
+                else:
+                    for var_type in self.__var_list:
+                        if var_type in ['xd','xa']:
+                            V_list.append(ip_dict[var_type][:,counter_x])
+                        else:
+                            V_list.append(ip_dict[var_type][:,counter])
+                    counter_x += 1
+                    counter += 1
+
+        V_list.append(ip_dict['xd'][:,counter_x])
+
+        V_ref = V_ref(ct.vertcat(*V_list))
 
         return V_ref
 
@@ -479,6 +490,8 @@ class Pmpc(object):
             self.__w0['coll_var',k,:,'xd'] = self.__w0['coll_var',k+1,:,'xd']
             self.__w0['coll_var',k,:,'u']  = self.__w0['coll_var',k+1,:,'u']
             self.__w0['coll_var',k,:,'xa'] = self.__w0['coll_var',k+1,:,'xa']
+            if 'xl' in self.__var_list:
+                self.__w0['coll_var',k,:,'xl'] = self.__w0['coll_var',k+1,:,'xl']
             self.__w0['xd',k] = self.__w0['xd',k+1]
 
         return None
@@ -560,7 +573,6 @@ class Pmpc(object):
         w = ct.SX.sym('w',W.shape[0])
         w_ref = ct.SX.sym('w_ref', W.shape[0])
 
-        #return ct.Function('tracking_cost', [w, w_ref], [ct.mtimes((w-w_ref).T,(w-w_ref))])
         f_t = ct.mtimes(
                 ct.mtimes(
                     (w-w_ref).T,
