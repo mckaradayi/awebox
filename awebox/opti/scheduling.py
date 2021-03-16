@@ -2,9 +2,9 @@
 #    This file is part of awebox.
 #
 #    awebox -- A modeling and optimization framework for multi-kite AWE systems.
-#    Copyright (C) 2017-2019 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
+#    Copyright (C) 2017-2020 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
 #                            ALU Freiburg.
-#    Copyright (C) 2018-2019 Thilo Bronnenmeyer, Kiteswarms Ltd.
+#    Copyright (C) 2018-2020 Thilo Bronnenmeyer, Kiteswarms Ltd.
 #    Copyright (C) 2016      Elena Malz, Sebastien Gros, Chalmers UT.
 #
 #    awebox is free software; you can redistribute it and/or
@@ -27,10 +27,11 @@ update model that generates the
 cost update and bounds update to be used in the homotopy process
 python-3.5 / casadi-3.4.5
 - authors: rachel leuthold, alu-fr 2018
-- edited: jochem de schutter, alu-fr 2018-2019
+- edited: jochem de schutter, alu-fr 2018-2020
 '''
 
 import awebox.tools.struct_operations as struct_op
+import awebox.tools.print_operations as print_op
 
 def define_homotopy_update_schedule(model, formulation, nlp, cost_solver_options):
 
@@ -64,13 +65,12 @@ def define_homotopy_schedule(formulation):
     homotopy_schedule = ()
     homotopy_schedule = homotopy_schedule + initial_schedule
 
-
-
-    if induction_model == 'actuator':
-        homotopy_schedule = homotopy_schedule + induction_schedule
-
     if traj_type == 'tracking' and fix_tether_length == False:
         homotopy_schedule = homotopy_schedule + tether_release_schedule
+
+    make_induction_step = not (induction_model == 'not_in_use')
+    if make_induction_step:
+        homotopy_schedule = homotopy_schedule + induction_schedule
 
     if traj_type == 'power_cycle':
         homotopy_schedule = homotopy_schedule + power_schedule
@@ -85,12 +85,8 @@ def define_homotopy_schedule(formulation):
         homotopy_schedule = homotopy_schedule + nominal_landing_schedule
         homotopy_schedule = homotopy_schedule + compromised_landing_schedule
 
-
-
-
-
-    if tether_drag_model in set(['equivalence', 'simple']):
-        homotopy_schedule = homotopy_schedule + tether_schedule
+    # if tether_drag_model in set([multi']):
+    #     homotopy_schedule = homotopy_schedule + tether_schedule
 
     homotopy_schedule = homotopy_schedule + final_schedule
 
@@ -101,7 +97,7 @@ def define_costs_to_update(P, formulation):
     updates = {}
 
     initial_updates = {}
-    initial_updates[0] = struct_op.subkeys(P, 'cost')
+    initial_updates[0] = set(struct_op.subkeys(P, 'cost'))
 
     fictitious_updates = {}
     fictitious_updates[0] = ['gamma', 'fictitious']
@@ -119,7 +115,7 @@ def define_costs_to_update(P, formulation):
     tether_release_updates[0] = []
 
     power_updates = {}
-    power_updates[0] = ['power', 'psi']
+    power_updates[0] = ['power', 'psi', 'fictitious']
     power_updates[1] = ['tracking']
 
     nominal_landing_updates = {}
@@ -443,7 +439,7 @@ def define_cost_update_schedule(cost_solver_options):
 def initialize_cost_update_counter(P):
 
     cost_update_counter = {}
-    for name in struct_op.subkeys(P, 'cost'):
+    for name in set(struct_op.subkeys(P, 'cost')):
 
         cost_update_counter[name] = -1
 
@@ -475,3 +471,16 @@ def initialize_bound_update_counter(model, schedule, formulation):
 
     return bound_update_counter
 
+def find_current_homotopy_parameter(parameters, V_bounds):
+    """ Return 'active' homotopy parameter by identifying which parameter
+    has the bounds [0,1]. If no such parameter is identified, "None" is returned.
+    """
+
+    phi_name = None
+    for phi in list(parameters.keys()):
+        ub = V_bounds['ub']['phi',phi]
+        lb = V_bounds['lb']['phi',phi]
+        if ub != lb:
+            phi_name = phi
+    
+    return phi_name

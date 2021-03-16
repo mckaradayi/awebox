@@ -2,9 +2,9 @@
 #    This file is part of awebox.
 #
 #    awebox -- A modeling and optimization framework for multi-kite AWE systems.
-#    Copyright (C) 2017-2019 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
+#    Copyright (C) 2017-2020 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
 #                            ALU Freiburg.
-#    Copyright (C) 2018-2019 Thilo Bronnenmeyer, Kiteswarms Ltd.
+#    Copyright (C) 2018-2020 Thilo Bronnenmeyer, Kiteswarms Ltd.
 #    Copyright (C) 2016      Elena Malz, Sebastien Gros, Chalmers UT.
 #
 #    awebox is free software; you can redistribute it and/or
@@ -59,6 +59,8 @@ class Quality(object):
         results = quality_funcs.test_numerics(trial, test_param_dict, results)
         results = quality_funcs.test_power_balance(trial, test_param_dict, results)
         results = quality_funcs.test_opti_success(trial, test_param_dict, results)
+        results = quality_funcs.test_slack_equalities(trial, test_param_dict, results)
+        results = quality_funcs.test_tracked_vortex_periods(trial, test_param_dict, results)
 
         # save test results
         self.__results = results
@@ -84,6 +86,9 @@ class Quality(object):
         awelogger.logger.warning('For more information, use trial.quality.print_results()')
         awelogger.logger.warning('#################################################')
 
+        self.__number_of_passed = number_of_passed
+        self.__number_of_tests = number_of_tests
+
     def print_results(self):
 
         results = self.__results
@@ -104,3 +109,6 @@ class Quality(object):
     @results.setter
     def results(self, value):
         print('Cannot set results object.')
+
+    def all_tests_passed(self):
+        return (self.__number_of_passed == self.__number_of_tests)

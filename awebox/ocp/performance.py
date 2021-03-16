@@ -2,9 +2,9 @@
 #    This file is part of awebox.
 #
 #    awebox -- A modeling and optimization framework for multi-kite AWE systems.
-#    Copyright (C) 2017-2019 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
+#    Copyright (C) 2017-2020 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
 #                            ALU Freiburg.
-#    Copyright (C) 2018-2019 Thilo Bronnenmeyer, Kiteswarms Ltd.
+#    Copyright (C) 2018-2020 Thilo Bronnenmeyer, Kiteswarms Ltd.
 #    Copyright (C) 2016      Elena Malz, Sebastien Gros, Chalmers UT.
 #
 #    awebox is free software; you can redistribute it and/or
@@ -54,7 +54,7 @@ def get_time_period(nlp_options, V, outputs):
     n_k = nlp_options['n_k']
     pf_reelout = nlp_options['phase_fix_reelout']
 
-    if nlp_options['phase_fix']:
+    if nlp_options['phase_fix'] == 'single_reelout':
         time_period_zeroth = V['theta', 't_f',0] * round(n_k * pf_reelout)
         time_period_first = V['theta', 't_f',1] * (n_k - round(n_k * pf_reelout))
         # average over collocation nodes
@@ -194,3 +194,30 @@ def get_windings(nlp_options, model, V, outputs={}):
         outputs['winding']['winding' + str(n)] = winding
 
     return outputs
+
+def find_phase_fix_time_period_zeroth(nlp_numerics_options, V):
+
+    nk = nlp_numerics_options['n_k']
+    phase_fix_reel_out = nlp_numerics_options['phase_fix_reelout']
+    time_period_zeroth = V['theta', 't_f', 0] * round(nk * phase_fix_reel_out) / nk
+    return time_period_zeroth
+
+def find_phase_fix_time_period_first(nlp_numerics_options, V):
+    nk = nlp_numerics_options['n_k']
+    phase_fix_reel_out = nlp_numerics_options['phase_fix_reelout']
+    time_period_first = V['theta', 't_f', 1] * (nk - round(nk * phase_fix_reel_out)) / nk
+    return time_period_first
+
+def find_time_period(nlp_numerics_options, V):
+
+    if nlp_numerics_options['phase_fix'] == 'single_reelout':
+        time_period_zeroth = find_phase_fix_time_period_zeroth(nlp_numerics_options, V)
+        time_period_first = find_phase_fix_time_period_first(nlp_numerics_options, V)
+
+        # average over collocation nodes
+        time_period = (time_period_zeroth + time_period_first)
+    else:
+        time_period = V['theta', 't_f']
+
+    return time_period
+

@@ -2,9 +2,9 @@
 #    This file is part of awebox.
 #
 #    awebox -- A modeling and optimization framework for multi-kite AWE systems.
-#    Copyright (C) 2017-2019 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
+#    Copyright (C) 2017-2020 Jochem De Schutter, Rachel Leuthold, Moritz Diehl,
 #                            ALU Freiburg.
-#    Copyright (C) 2018-2019 Thilo Bronnenmeyer, Kiteswarms Ltd.
+#    Copyright (C) 2018-2020 Thilo Bronnenmeyer, Kiteswarms Ltd.
 #    Copyright (C) 2016      Elena Malz, Sebastien Gros, Chalmers UT.
 #
 #    awebox is free software; you can redistribute it and/or
@@ -35,10 +35,12 @@ from awebox.logger.logger import Logger as awelogger
 import awebox.tools.print_operations as print_op
 
 import awebox.tools.struct_operations as struct_op
+from . import var_struct
 
 import awebox as awe
 
 from . import operation
+
 
 class Formulation(object):
     def __init__(self):
@@ -64,7 +66,7 @@ class Formulation(object):
             self.generate_variable_bounds(options)
             self.generate_parameter_bounds(options)
             self.generate_parameterization_settings(options)
-            self.generate_constraints(options, model)
+            self.generate_integral_constraints(options, model)
             self.generate_outputs(options)
 
             self.__status = 'I am a formulation.'
@@ -80,7 +82,7 @@ class Formulation(object):
 
         [periodic, initial_conditions, param_initial_conditions, param_terminal_conditions, terminal_inequalities, integral_constraints] = operation.get_operation_conditions(options)
 
-        self.__induction_model = options['induction_model']
+        self.__induction_model = options['induction']['induction_model']
         self.__traj_type = options['trajectory']['type']
         self.__tether_drag_model = options['tether_drag_model']
         self.__fix_tether_length = options['trajectory']['tracking']['fix_tether_length']
@@ -151,7 +153,7 @@ class Formulation(object):
 
         [periodic, initial_conditions, param_initial_conditions, param_terminal_conditions, terminal_inequalities, integral_constraints] = operation.get_operation_conditions(options)
 
-        xi = cas.struct_symMX([(cas.entry('xi_0'), cas.entry('xi_f'))])
+        xi = var_struct.get_xi_struct()
         xi_bounds = {}
 
         xi_bounds['xi_0'] = [0.0, 0.0]
@@ -202,44 +204,18 @@ class Formulation(object):
 
         return None
 
-    def generate_constraints(self, options, model):
+    def generate_integral_constraints(self, options, model):
 
-        awelogger.logger.info('generate constraints..')
+        awelogger.logger.info('generate integral constraints..')
 
         variables = model.variables(cas.MX.sym('variables', model.variables.cat.shape))
         parameters = model.parameters(cas.MX.sym('parameters', model.parameters.cat.shape))
-        ref_variables = model.variables(cas.MX.sym('variables', model.variables.cat.shape)) #todo: deepcopy necessary?
 
+        integral_constraints, integral_constraint_fun, integral_constants = operation.generate_integral_constraints(
+            options, variables, parameters, model)
 
-        initial_constraints, initial_constraints_fun = operation.generate_initial_constraints(options,
-                            variables,
-                            ref_variables,
-                            model,
-                            self.__xi_dict)
-
-        terminal_constraints, terminal_constraints_fun = operation.generate_terminal_constraints(options,
-                            variables,
-                            ref_variables,
-                            model,
-                            self.__xi_dict)
-
-        periodic_constraints, periodic_constraints_fun = operation.generate_periodic_constraints(options,
-                            variables,
-                            ref_variables)
-
-        integral_constraints, integral_constraint_fun, integral_constants = operation.generate_integral_constraints(options, variables, parameters, model)
-
-
-        self.__constraints = {'initial': initial_constraints,
-                              'terminal': terminal_constraints,
-                              'periodic': periodic_constraints,
-                              'integral': integral_constraints}
-
-        self.__constraints_fun = {'initial': initial_constraints_fun,
-                                  'terminal': terminal_constraints_fun,
-                                  'periodic': periodic_constraints_fun,
-                                  'integral': integral_constraint_fun}
-
+        self.__constraints = {'integral': integral_constraints}
+        self.__constraints_fun = {'integral': integral_constraint_fun}
         self.__integral_constants = integral_constants
 
         return None
@@ -278,10 +254,6 @@ class Formulation(object):
     @property
     def parameter_bounds(self):
         return self.__parameter_bounds
-
-    # @property
-    # def dynamics(self):
-    #     return self.__parameter_bounds
 
     @property
     def constraints(self):
