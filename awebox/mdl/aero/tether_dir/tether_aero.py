@@ -169,7 +169,7 @@ def get_force_outputs(model_options, variables, parameters, atmos, wind, upper_n
         drag_parent = cas.DM.zeros((3, 1))
         drag_node = cas.DM.zeros((3, 1))
     
-    elif tether_model == 'integral'
+    elif tether_model == 'integral':
         drag_node = integral_upper
         drag_parent = integral_lower
     else:
