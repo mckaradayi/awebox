@@ -69,7 +69,7 @@ class Pmpc(object):
         options['nlp']['n_k'] = self.__N
         options['nlp']['d'] = self.__d
         options['nlp']['scheme'] = self.__scheme
-        options['nlp']['collocation']['u_param'] = 'poly'
+        options['nlp']['collocation']['u_param'] = mpc_options['u_param']
         options['visualization']['cosmetics']['plot_ref'] = True
         fixed_params = {}
         for name in list(self.__pocp_trial.model.variables_dict['theta'].keys()):
@@ -165,9 +165,12 @@ class Pmpc(object):
 
         for name in list(self.__trial.model.variables_dict['u'].keys()):
             if 'fict' in name:
-                self.__trial.nlp.V_bounds['lb']['coll_var',:,:,'u',name] = 0.0
-                self.__trial.nlp.V_bounds['ub']['coll_var',:,:,'u',name] = 0.0
-
+                if self.__mpc_options['u_param'] == 'poly':
+                    self.__trial.nlp.V_bounds['lb']['coll_var',:,:,'u',name] = 0.0
+                    self.__trial.nlp.V_bounds['ub']['coll_var',:,:,'u',name] = 0.0
+                else:
+                    self.__trial.nlp.V_bounds['lb']['u',:,name] = 0.0
+                    self.__trial.nlp.V_bounds['ub']['u',:,name] = 0.0
         self.__lbw = self.__trial.nlp.V_bounds['lb']
         self.__ubw = self.__trial.nlp.V_bounds['ub']
         self.__lbg = self.__trial.nlp.g_bounds['lb']
@@ -227,10 +230,13 @@ class Pmpc(object):
         self.__shift_solution()
 
         # return zoh control
-        u0 = ct.mtimes(
-                self.__trial.nlp.Collocation.quad_weights[np.newaxis,:],
-                ct.horzcat(*self.__trial.nlp.V(sol['x'])['coll_var',0,:,'u']).T
-                )
+        if self.__mpc_options['u_param'] == 'poly':
+            u0 = ct.mtimes(
+                    self.__trial.nlp.Collocation.quad_weights[np.newaxis,:],
+                    ct.horzcat(*self.__trial.nlp.V(sol['x'])['coll_var',0,:,'u']).T
+                    )
+        else:
+            u0 = self.__trial.nlp.V(sol['x'])['u',0]
 
         return u0
 
@@ -475,7 +481,10 @@ class Pmpc(object):
 
         for k in range(self.__N-1):
             self.__w0['coll_var',k,:,'xd'] = self.__w0['coll_var',k+1,:,'xd']
-            self.__w0['coll_var',k,:,'u']  = self.__w0['coll_var',k+1,:,'u']
+            if self.__mpc_options['u_param'] == 'zoh':
+                self.__w0['u', k] = self.__w0['u', k+1]
+            elif self.__mpc_options['u_param'] == 'poly':
+                self.__w0['coll_var',k,:,'u']  = self.__w0['coll_var',k+1,:,'u']
             self.__w0['coll_var',k,:,'xa'] = self.__w0['coll_var',k+1,:,'xa']
             self.__w0['coll_var',k,:,'xl'] = self.__w0['coll_var',k+1,:,'xl']
             self.__w0['xd',k] = self.__w0['xd',k+1]
