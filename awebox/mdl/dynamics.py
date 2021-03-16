@@ -290,7 +290,8 @@ def get_drag_power_from_kite(kite, variables_si, parameters, outputs, architectu
 
 def get_power(options, variables_si, parameters, outputs, architecture):
     if options['trajectory']['system_type'] == 'drag_mode':
-        power = cas.SX.zeros(1, 1)
+        # power = cas.SX.zeros(1, 1)
+        power = variables_si['xa']['lambda10'] * variables_si['xd']['l_t'] * variables_si['xd']['dl_t']
         for kite in architecture.kite_nodes:
             power += get_drag_power_from_kite(kite, variables_si, parameters, outputs, architecture)
     else:

@@ -785,9 +785,9 @@ def build_tether_control_options(options, options_tree, fixed_params):
 
     control_name = options['model']['tether']['control_var']
 
-    if in_drag_mode_operation:
-        options_tree.append(('model', 'system_bounds', 'u', control_name, [0.0, 0.0], ('main tether reel-out acceleration', None), 'x'))
-
+    if False: #in_drag_mode_operation:
+        # options_tree.append(('model', 'system_bounds', 'u', control_name, [0.0, 0.0], ('main tether reel-out acceleration', None), 'x'))
+        32.0
     else:
         if control_name == 'ddl_t':
             options_tree.append(('model', 'system_bounds', 'u', 'ddl_t', [-1. * ddl_t_max, ddl_t_max],   ('main tether max acceleration [m/s^2]', None),'x'))
