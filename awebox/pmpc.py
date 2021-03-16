@@ -125,9 +125,13 @@ class Pmpc(object):
         g_ub = self.__trial.nlp.g(self.__trial.nlp.g_bounds['ub'])
         for constr in self.__trial.model.constraints_dict['inequality'].keys():
             if constr != 'dcoeff_actuation':
+<<<<<<< HEAD
                 #g_ub['stage_constraints',0,:,'path_constraints','inequality',constr] = np.inf
                 # Hardcoded replace l.127 by l.129:
                 g_ub['stage_constraints',:,:-1,'path_constraints','inequality',constr] = np.inf
+=======
+                g_ub['path',0,constr] = np.inf
+>>>>>>> mpc_terminal_cost
         self.__trial.nlp.g_bounds['ub'] = g_ub.cat
 
         return None
@@ -251,19 +255,21 @@ class Pmpc(object):
         f = 0.0
 
         # weighting matrices
-        Q = np.eye(self.__trial.model.variables['xd'].shape[0])
-        R = np.eye(self.__trial.model.variables['u'].shape[0])
-        Z = 1e-4*np.eye(self.__trial.model.variables['xa'].shape[0])
-        P = np.eye(self.__trial.model.variables['xd'].shape[0])
-        #Q = 1e+2*np.eye(self.__trial.model.variables['xd'].shape[0])
-        #R = 1e+0*np.eye(self.__trial.model.variables['u'].shape[0])
-        #Z = 1e-4*np.eye(self.__trial.model.variables['xa'].shape[0])
-        #P = 1e+4*np.eye(self.__trial.model.variables['xd'].shape[0])
-        L = 1e-4*np.eye(self.__trial.model.variables['xl'].shape[0])
+        weights = {}
+        for weight in ['Q', 'R', 'P']:
+            if weight in self.__mpc_options.keys():
+                weights[weight] = self.__mpc_options[weight]
+            else:
+                if weight in ['Q', 'P']:
+                    weights[weight] = np.eye(self.__nx)
+                elif weight == 'R':
+                    weights[weight] = np.eye(self.__nu)
+        weights['Z'] = 1e-5*np.ones((self.__nz, self.__nz))
+        weights['L'] = 1e-5*np.ones((self.__nl, self.__nl))
 
         # create tracking function
         from scipy.linalg import block_diag
-        tracking_cost = self.__create_tracking_cost_fun(block_diag(Q,R,Z,L))
+        tracking_cost = self.__create_tracking_cost_fun(block_diag(weights['Q'],weights['R'],weights['Z'],weights['L']))
         cost_map = tracking_cost.map(self.__N)
 
         # cost function arguments
@@ -278,11 +284,11 @@ class Pmpc(object):
 
         # integrate tracking cost function
         f = ct.mtimes(ct.vertcat(*quad_weights).T, cost_map(*cost_args).T)/self.__N
-        
+
         # terminal cost
         dxN = self.__trial.nlp.V['xd',-1] - self.__p['ref','xd',-1]
-        f += ct.mtimes(ct.mtimes(dxN.T, P),dxN)
-        
+        f += ct.mtimes(ct.mtimes((dxN.T, weights['P'])),dxN)
+
         return f
 
     def __extract_solver_stats(self, sol):
@@ -564,7 +570,10 @@ class Pmpc(object):
         w = ct.SX.sym('w',W.shape[0])
         w_ref = ct.SX.sym('w_ref', W.shape[0])
 
+<<<<<<< HEAD
         #return ct.Function('tracking_cost', [w, w_ref], [ct.mtimes((w-w_ref).T,(w-w_ref))])
+=======
+>>>>>>> mpc_terminal_cost
         f_t = ct.mtimes(
                 ct.mtimes(
                     (w-w_ref).T,
