@@ -141,20 +141,11 @@ def assign_phase_fix_bounds(nlp_options, model, vars_lb, vars_ub, coll_flag, var
     pumping_range = nlp_options['pumping_range']
     if name == 'l_t':
 
-<<<<<<< HEAD
-        # if kdx == 0 and (not coll_flag) and nlp_options['pumping_range'][0]:
-        #     vars_lb[var_type, 0, name] = pumping_range_0_scaled
-        #     vars_ub[var_type, 0, name] = pumping_range_0_scaled
-        # if kdx == switch_kdx and (not coll_flag) and nlp_options['pumping_range'][1]:
-        #     vars_lb[var_type, kdx, name] = pumping_range_1_scaled
-        #     vars_ub[var_type, kdx, name] = pumping_range_1_scaled
-=======
         if kdx == 0 and (not coll_flag) and nlp_options['pumping_range'][0]:
             vars_lb[var_type, 0, name] = nlp_options['pumping_range'][0]
             vars_ub[var_type, 0, name] = nlp_options['pumping_range'][0]
         if kdx == switch_kdx and (not coll_flag) and nlp_options['pumping_range'][1]:
             vars_lb[var_type, kdx, name] = nlp_options['pumping_range'][1]
             vars_ub[var_type, kdx, name] = nlp_options['pumping_range'][1]
->>>>>>> pumping_range_bug
 
     return vars_lb, vars_ub
