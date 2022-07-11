@@ -80,6 +80,9 @@ def get_reference(nlp, model, V_init, options):
                                                                                 V_init['coll_var',k,j, 'x','q' + str(parent) + str(grandparent)],
                                                                                 n, parent)
 
+    if 'ell_radius' in model.variables_dict['theta'].keys():
+        V_ref['theta', 'ell_radius'] = 0.0
+
     return V_ref
 
 def get_stagger_distance(options, model, q_init, q_parent, n, parent):

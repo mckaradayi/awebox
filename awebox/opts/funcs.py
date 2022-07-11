@@ -211,9 +211,12 @@ def build_nlp_options(options, help_options, user_options, options_tree, archite
         options_tree.append(('model', 'scaling', 'theta', 'P_max', power, ('????', None), 'x'))
         options_tree.append(('solver', 'initialization', 'theta', 'P_max', power, ('????', None), 'x'))
 
-    if options['nlp']['cost']['PDGA']:
+    if options['model']['model_bounds']['ellipsoidal_flight_region']['include']:
         options_tree.append(('model', 'scaling', 'theta', 'ell_radius', 50.0, ('????', None), 'x'))
-        options_tree.append(('solver', 'initialization', 'theta', 'ell_radius', 150, ('????', None), 'x'))
+        options_tree.append(('model', 'scaling', 'theta', 'ell_elevation', 1.0, ('????', None), 'x'))
+        options_tree.append(('solver', 'initialization', 'theta', 'ell_radius', 500.0, ('????', None), 'x'))
+        elevation_rad = options['solver']['initialization']['inclination_deg']*np.pi/180.0
+        options_tree.append(('solver', 'initialization', 'theta', 'ell_elevation', elevation_rad, ('????', None), 'x'))
         options_tree.append(('model', 'scaling', 'theta', 'ell_theta', 1.0, ('????', None), 'x'))
 
     # else:

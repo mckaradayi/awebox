@@ -194,6 +194,7 @@ def set_default_options(default_user_options, help_options):
         ('model',  'system_bounds', 'u',           'dddl_t',       [-100.0, 100.0],                                                               ('main tether jerk bounds', None),'x'),
         ('model',  'system_bounds', 'theta',       'a',             [0.0, 0.5],           ('average induction factor bounds', None),'x'),
         ('model',  'system_bounds', 'theta',       'ell_radius',    [5.0, cas.inf],           ('ellipse radius bounds', None),'s'),
+        ('model',  'system_bounds', 'theta',       'ell_elevation', [np.deg2rad(10.0), np.deg2rad(80.0)],           ('ellipse radius bounds', None),'s'),
 
         ('model',  'system_bounds', 'x',          'coeff',        [np.array([0., -80.0 * np.pi / 180.]), np.array([2., 80.0 * np.pi / 180.])],   ('coeff bounds [-]', None),'s'),
         ('model',  'system_bounds', 'u',          'dcoeff',       [np.array([-5., -80. * np.pi / 180]), np.array([5., 80. * np.pi / 180])],   ('dcoeff bounds [-]', None),'s'),
@@ -219,8 +220,6 @@ def set_default_options(default_user_options, help_options):
         ('params',  'model_bounds', None,           'rot_angles_cross',      np.array([80.0*np.pi/180., 80.0*np.pi/180., 85.0*np.pi/180.0]), ('[roll, pitch, yaw] - [rad]', None), 's'),
         ('params',  'model_bounds', None,           'span_angle',            45.0*np.pi/180., ('[max. angle between span and wing-tip cross-tether] - [rad]', None), 's'),
         ('model',   'model_bounds', 'ellipsoidal_flight_region', 'include',  False,   ('include ellipsoidal flight hull', None), 't'),
-        ('params',  'model_bounds', 'ellipsoidal_flight_region', 'radius',  500.0,   ('ellipsoidal flight hull ground radius', None), 's'),
-        ('params',  'model_bounds', 'ellipsoidal_flight_region', 'alpha',  np.pi/6,   ('ellipsoidal flight hull inclination angle', None), 's'),
 
         #### scaling
         ('model',  'scaling', 'x',     'q',        1.,     ('kite position natural length [m]', None),'x'),
@@ -381,6 +380,8 @@ def set_default_options(default_user_options, help_options):
         ('solver',   'weights',        None,   'l_s',                   1e0,       ('optimization weight for the l_s variable [-]', None),'s'),
         ('solver',   'weights',        None,   'diam_s',                1e0,       ('optimization weight for the diam_s variable [-]', None),'s'),
         ('solver',   'weights',        None,   'diam_t',                1e0,       ('optimization weight for the diam_t variable [-]', None),'s'),
+        ('solver',   'weights',        None,   'ell_radius',            1e0,       ('optimization weight for the diam_t variable [-]', None),'s'),
+        ('solver',   'weights',        None,   'ell_elevation',         1e-8,       ('optimization weight for the diam_t variable [-]', None),'s'),
 
         ('solver',  'cost',             'tracking',             0,  1e-1,       ('starting cost for tracking', None),'s'),
         ('solver',  'cost',             'u_regularisation',     0,  1e-1,       ('starting cost for u_regularisation', None),'s'),
