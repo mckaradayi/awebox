@@ -605,12 +605,12 @@ def ellipsoidal_flight_constraint(options, variables, parameters, architecture, 
 
     cstr_list = mdl_constraint.MdlConstraintList()
 
-    if 'ell_radius' in list(variables['theta'].keys()):
-        r = variables['theta']['ell_radius'] - parameters['theta0', 'geometry', 'b_ref']
-    else:
-        r = parameters['theta0', 'model_bounds', 'ellipsoidal_flight_region', 'radius'] - parameters['theta0', 'geometry', 'b_ref']
     if options['model_bounds']['ellipsoidal_flight_region']['include']:
         alpha = variables['theta']['ell_elevation']
+        if 'ell_radius' in list(variables['theta'].keys()):
+            r = variables['theta']['ell_radius'] - parameters['theta0', 'geometry', 'b_ref']
+        else:
+            r = parameters['theta0', 'model_bounds', 'ellipsoidal_flight_region', 'radius'] - parameters['theta0', 'geometry', 'b_ref']
         for node in range(1,architecture.number_of_nodes):
             q = variables['x']['q{}'.format(architecture.node_label(node))]
 
