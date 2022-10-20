@@ -597,15 +597,15 @@ class Optimization(object):
 
         else:
 
-            try:
-                self.arg_initial['lam_x0'] = self.__arg['lam_x0']
-                self.arg_initial['lam_g0'] = self.__arg['lam_g0']
-            except:
-                32.0
+            # try:
+            #     self.arg_initial['lam_x0'] = self.__arg['lam_x0']
+            #     self.arg_initial['lam_g0'] = self.__arg['lam_g0']
+            # except:
+            #     32.0
 
-            # retrieve and update
-            self.__arg['lam_x0'] = self.__solution['lam_x']
-            self.__arg['lam_g0'] = self.__solution['lam_g']
+            # # retrieve and update
+            # self.__arg['lam_x0'] = self.__solution['lam_x']
+            # self.__arg['lam_g0'] = self.__solution['lam_g']
             self.__arg['x0'] = self.__solution['x']
 
         return None
