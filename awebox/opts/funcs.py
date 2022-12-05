@@ -216,7 +216,15 @@ def build_nlp_options(options, help_options, user_options, options_tree, archite
 
     if options['nlp']['cost']['PDGA']:
         options_tree.append(('model', 'scaling', 'theta', 'ell_radius', 50.0, ('????', None), 'x'))
-        options_tree.append(('solver', 'initialization', 'theta', 'ell_radius', 150, ('????', None), 'x'))
+        if user_options['system_model']['architecture'] == {1:0}:
+            options_tree.append(('solver', 'initialization', 'theta', 'ell_radius', 300, ('????', None), 'x'))
+        else:
+            options_tree.append(('solver', 'initialization', 'theta', 'ell_radius', 150, ('????', None), 'x'))
+
+        options_tree.append(('model', 'scaling', 'theta', 'ell_elevation', 1.0, ('????', None), 'x'))
+        options_tree.append(('solver', 'initialization', 'theta', 'ell_elevation', np.pi/6, ('????', None), 'x'))
+        options_tree.append(('model', 'scaling', 'theta', 'ell_azimuth', 1.0, ('????', None), 'x'))
+        options_tree.append(('solver', 'initialization', 'theta', 'ell_azimuth', 0.0, ('????', None), 'x'))
         options_tree.append(('model', 'scaling', 'theta', 'ell_theta', 1.0, ('????', None), 'x'))
 
     # else:

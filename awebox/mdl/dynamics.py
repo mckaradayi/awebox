@@ -607,9 +607,10 @@ def ellipsoidal_flight_constraint(options, variables, parameters, architecture, 
 
     cstr_list = mdl_constraint.MdlConstraintList()
 
-    alpha = parameters['theta0', 'model_bounds', 'ellipsoidal_flight_region', 'alpha']
+    ell_elevation = variables['theta']['ell_elevation']
     if 'ell_radius' in list(variables['theta'].keys()):
-        r = variables['theta']['ell_radius'] - parameters['theta0', 'geometry', 'b_ref']
+        r = variables['theta']['ell_radius']
+        bref = parameters['theta0', 'geometry', 'b_ref']
     else:
         r = parameters['theta0', 'model_bounds', 'ellipsoidal_flight_region', 'radius'] - parameters['theta0', 'geometry', 'b_ref']
     if options['model_bounds']['ellipsoidal_flight_region']['include']:
@@ -617,8 +618,8 @@ def ellipsoidal_flight_constraint(options, variables, parameters, architecture, 
             q = variables['x']['q{}'.format(architecture.node_label(node))]
 
             yy = q[1]
-            zz = - q[0]*np.sin(alpha) + q[2]*np.cos(alpha)
-            ellipse_ineq = zz**2/(r*np.sin(alpha))**2 + yy**2/r**2 - 1
+            zz = - q[0]*np.sin(ell_elevation) + q[2]*np.cos(ell_elevation)
+            ellipse_ineq = zz**2/(r*np.sin(ell_elevation) - bref/2)**2 + yy**2/(r - bref/2)**2 - 1
 
             ellipse_cstr = cstr_op.Constraint(expr=ellipse_ineq,
                                         name='ellipse_flight' + architecture.node_label(node),
@@ -631,16 +632,17 @@ def ellipsoidal_flight_constraint(options, variables, parameters, architecture, 
                 q = variables['x']['q{}'.format(architecture.node_label(kite))]
 
                 yy = q[1]
-                zz = - q[0]*np.sin(alpha) + q[2]*np.cos(alpha)
+                zz = - q[0]*np.sin(ell_elevation) + q[2]*np.cos(ell_elevation)
                 if kite == 2:
                     ellipse_half_ineq = np.cos(ell_theta)*zz - np.sin(ell_theta)*yy
                 elif kite == 3:
                     ellipse_half_ineq = np.sin(ell_theta)*yy - np.cos(ell_theta)*zz            
 
-                ellipse_half_cstr = cstr_op.Constraint(expr=ellipse_half_ineq,
-                                            name='ellipse_half' + architecture.node_label(kite),
-                                            cstr_type='ineq')
-                cstr_list.append(ellipse_half_cstr)
+                if kite > 1:
+                    ellipse_half_cstr = cstr_op.Constraint(expr=ellipse_half_ineq,
+                                                name='ellipse_half' + architecture.node_label(kite),
+                                                cstr_type='ineq')
+                    cstr_list.append(ellipse_half_cstr)
     return outputs, cstr_list
 
 

@@ -262,6 +262,7 @@ class Trial(object):
             'ell_radius': ('Ellipse radius', 1, 'm'),
             'ell_elevation': ('Ellipse elevation', 180.0/np.pi, 'deg'),
             'ell_theta': ('Ellipse division angle', 180.0/np.pi, 'deg'), 
+            'ell_azimuth': ('Ellipse azimuth', 180.0/np.pi, 'deg'), 
             'a': ('Average induction', 1, '-'),
         }
 

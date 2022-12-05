@@ -200,7 +200,7 @@ def generate_structure(options, architecture):
         system_parameters += [('P_max', (1, 1))] # max power
 
     if options['model_bounds']['ellipsoidal_flight_region']['include']:
-        system_parameters += [('ell_radius', (1, 1))] # max power
+        system_parameters += [('ell_radius', (1, 1)), ('ell_elevation', (1,1)), ('ell_azimuth', (1,1))] # max power
 
     if options['induction_model'] == 'averaged':
         system_parameters += [('a', (1,1))] # average induction
