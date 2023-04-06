@@ -211,8 +211,7 @@ def manage_power_integration(options, power, outputs, system_variables, paramete
     integral_scaling = {}
 
     if options['integral_outputs']:
-        
-        entry_list = [cas.entry('e', expr=power / options['scaling']['x']['e'])]
+        entry_list = [cas.entry('e', expr=power)]
 
         if options['trajectory']['system_type'] == 'drag_mode':
             entry_list += [cas.entry('power_derivative_sq', expr= outputs['performance']['power_derivative']**2)]
@@ -316,6 +315,7 @@ def get_power(options, system_variables, parameters, outputs, architecture):
         outputs['performance']['power_derivative'] = lagr_tools.time_derivative(power, system_variables, architecture)
     else:
         power = variables_si['z']['lambda10'] * variables_si['x']['l_t'] * variables_si['x']['dl_t']
+        power = variables_si['x']['dq10'][2]
         outputs['performance']['p_current'] = power
 
     return power, outputs

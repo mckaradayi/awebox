@@ -28,7 +28,7 @@ options = set_ampyx_ap2_settings(options)
 # here: lift-mode system with pumping-cycle operation, with a one winding trajectory
 options['user_options.trajectory.type'] = 'power_cycle'
 options['user_options.trajectory.system_type'] = 'lift_mode'
-options['user_options.trajectory.lift_mode.windings'] = 1
+options['user_options.trajectory.lift_mode.windings'] = 5
 
 # indicate desired environment
 # here: wind velocity profile according to power-law
@@ -37,25 +37,32 @@ options['params.wind.power_wind.exp_ref'] = 0.15
 options['user_options.wind.model'] = 'power'
 options['user_options.wind.u_ref'] = 0.0
 
+# options['visualization.cosmetics.plot_ref'] = True
+# options['visualization.cosmetics.plot_bounds'] = True 
+
 # indicate numerical nlp details
 # here: nlp discretization, with a zero-order-hold control parametrization, and a simple phase-fixing routine. also, specify a linear solver to perform the Newton-steps within ipopt.
-options['nlp.n_k'] = 20
+options['nlp.n_k'] = 100
 options['nlp.collocation.u_param'] = 'zoh'
 options['user_options.trajectory.lift_mode.phase_fix'] = 'simple'
 options['solver.linear_solver'] = 'ma57' # if HSL is installed, otherwise 'mumps'
-options['solver.mu_hippo'] = 1e-4
+options['solver.mu_hippo'] = 1e-2
+options['solver.max_iter'] = 1000
 # build and optimize the NLP (trial)
 trial = awe.Trial(options, 'Ampyx_AP2')
 trial.build()
-
+# trial.optimize(final_homotopy_step = 'initial')
+# trial.plot(['states', 'invariants', 'constraints', 'quad'])
+# plt.show()
 trial.optimize(intermediate_solve=True)
 
 intermediate_sol_design = copy.deepcopy(trial.solution_dict)
-trial.optimize(options_seed = options, warmstart_file = intermediate_sol_design, intermediate_solve=False, recalibrate_viz = False)
-# trial.plot(['states', 'controls', 'constraints','quad'])
-# plt.show()
-trial.write_to_csv(file_name = 'loitering', frequency=10., rotation_representation='dcm')
+trial.optimize(options_seed = options, warmstart_file = intermediate_sol_design, intermediate_solve=False, recalibrate_viz = True)
+trial.plot(['states', 'invariants', 'constraints', 'quad'])
+plt.show()
 
+trial.write_to_csv(file_name = 'climbing', frequency=10., rotation_representation='dcm')
+import ipdb; ipdb.set_trace()
 # fix params
 fixed_params = {}
 for theta in trial.model.variables_dict['theta'].keys():

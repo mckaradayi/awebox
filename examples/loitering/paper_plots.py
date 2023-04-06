@@ -40,7 +40,7 @@ textwidth  = 9.46637 # inches
 # FIGURE 4: Local solution comparison
 # =======================================
 
-name = 'loitering_z600'
+name = 'climbing'
 traj_dict = {}
 # List of keys
 with open(filefolder+name+'.csv', 'r') as csvfile:
@@ -64,7 +64,6 @@ with open(filefolder+name+'.csv', newline='') as csvfile:
         else:    
             x = tmp.astype(float)
         traj_dict[name][key] = x
-
 
 for key in traj_dict.keys():
 
@@ -138,7 +137,7 @@ for key in traj_dict.keys():
     max_power = max(power_list)
     min_power = -min(power_list)
 
-    jump_states = 5
+    jump_states = 3
     for kk in range(0, len(ref_state_0), jump_states):
         qkk = np.array([ref_state_0[kk], ref_state_1[kk], ref_state_2[kk]]).squeeze()
         Rkkvec = np.array([homotopy[ref_rot+'_'+str(yy)][kk] for yy in range(9)]) 

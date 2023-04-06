@@ -211,7 +211,19 @@ def expand_with_collocation(nlp_options, P, V, Xdot, model, Collocation):
     # collect shooting variables
     shooting_nodes = struct_op.count_shooting_nodes(nlp_options)
     shooting_vars = struct_op.get_shooting_vars(nlp_options, V, P, Xdot, model)
+
+    # endpoint variables
+    var = []
+    var.append(V['x',-1])
+    var.append(Xdot['coll_x',-1, -1])
+    var.append(V['u',-1])
+    var.append(V['coll_var',-1,-1, 'z'])
+    var.append(V['theta'])
+    var_end = cas.vertcat(*var)
+    shoot_vars_plus = cas.horzcat(shooting_vars, var_end)
+
     shooting_params = struct_op.get_shooting_params(nlp_options, V, P, model)
+    shoot_params_plus = cas.horzcat(shooting_params, shooting_params[:,-1])
 
     # collect collocation variables
     coll_nodes = n_k*d
@@ -223,7 +235,7 @@ def expand_with_collocation(nlp_options, P, V, Xdot, model, Collocation):
     if nlp_options['collocation']['u_param'] == 'poly':
         mdl_ineq_map = mdl_ineq_fun.map('mdl_ineq_map', parallellization, coll_nodes, [], [])
     elif nlp_options['collocation']['u_param'] == 'zoh':
-        mdl_ineq_map = mdl_ineq_fun.map('mdl_ineq_map', parallellization, shooting_nodes, [], [])
+        mdl_ineq_map = mdl_ineq_fun.map('mdl_ineq_map', parallellization, shooting_nodes+1, [], [])
 
     mdl_eq_fun = model_constraints_list.get_function(nlp_options, model_variables, model_parameters, 'eq')
     mdl_eq_map = mdl_eq_fun.map('mdl_eq_map', parallellization, coll_nodes, [], [])
@@ -235,7 +247,7 @@ def expand_with_collocation(nlp_options, P, V, Xdot, model, Collocation):
     if nlp_options['collocation']['u_param'] == 'poly':
         ocp_ineqs_expr = mdl_ineq_map(coll_vars, coll_params)
     elif nlp_options['collocation']['u_param'] == 'zoh':
-        ocp_ineqs_expr = mdl_ineq_map(shooting_vars, shooting_params)
+        ocp_ineqs_expr = mdl_ineq_map(shoot_vars_plus, shoot_params_plus)
     ocp_eqs_expr = mdl_eq_map(coll_vars, coll_params)
     ocp_eqs_shooting_expr = mdl_shooting_eq_map(shooting_vars, shooting_params)
 
@@ -310,13 +322,19 @@ def expand_with_collocation(nlp_options, P, V, Xdot, model, Collocation):
         # continuity constraints
         cstr_list.append(Collocation.get_continuity_constraint(V, kdx))
 
+    cstr_list.append(cstr_op.Constraint(
+        expr=ocp_ineqs_expr[:, n_k],
+        name='path_{}'.format(n_k),
+        cstr_type='ineq'
+        )
+    )
     mdl_path_constraints = model.constraints_dict['inequality']
     mdl_dyn_constraints = model.constraints_dict['equality']
     
     if nlp_options['collocation']['u_param'] == 'zoh':
         entry_tuple += (
             cas.entry('shooting',       repeat = [n_k],     shape = mdl_shooting_cstr_sublist.get_expression_list('eq').shape),
-            cas.entry('path',           repeat = [n_k],     struct = mdl_path_constraints),
+            cas.entry('path',           repeat = [n_k+1],     struct = mdl_path_constraints),
         )
     
     elif nlp_options['collocation']['u_param'] == 'poly':

@@ -109,7 +109,7 @@ def get_initial_constraints(options, initial_variables, ref_variables, model, xi
                                     name='param_initial_conditions',
                                     cstr_type='eq')
         cstr_list.append(init_param_cstr)
-
+    initial_conditions = True
     if initial_conditions:
         init_eq = make_initial_conditions(initial_variables, ref_variables, xi_dict, model, options)
         init_cstr = cstr_op.Constraint(expr=init_eq,
@@ -256,8 +256,12 @@ def make_periodicity_equality(initial_model_variables, terminal_model_variables,
 
         if (not name[0] == 'e') and (not name[0] == 'w') and (not name[:2] == 'dw') and (not from_comparison_model):
 
-            initial_value = vect_op.columnize(initial_model_variables['x', name])
-            final_value = vect_op.columnize(terminal_model_variables['x', name])
+            if name == 'q10':
+                initial_value = initial_model_variables['x', name][:2]
+                final_value = terminal_model_variables['x', name][:2]
+            elif name != 'l_t':
+                initial_value = vect_op.columnize(initial_model_variables['x', name])
+                final_value = vect_op.columnize(terminal_model_variables['x', name])
 
             difference = initial_value - final_value
 
@@ -313,15 +317,14 @@ def make_initial_conditions(initial_model_variables, ref_variables, xi_dict, mod
     variable_list = set(x_struct.keys()) - set(black_list)
 
     # iterate over variables to construct constraints
-    for state in variable_list:
-        state_name, _ = struct_op.split_name_and_node_identifier(state)
-        if state_name == 'r':
-            r_state = cas.reshape(initial_states['x',state], 3, 3)
-            r_ref   = cas.reshape(ref_variables['x',state], 3, 3)
-            constr  = cas.mtimes(r_state.T, r_ref) - cas.DM.eye(3)
-            initial_conditions_eq_list += [cas.reshape(constr, 9, 1)]
-        else:
-            initial_conditions_eq_list += [initial_states['x', state] - ref_variables['x',state]]
+    r_state = cas.reshape(initial_states['x','r10'], 3, 3)
+    constr  = cas.mtimes(r_state.T, r_state) - cas.DM.eye(3)
+    constr = cas.vertcat(constr[:,0], constr[:2, 1], constr[:1,2])
+    # initial_conditions_eq_list += [constr]
+    c = 0.5*(cas.mtimes(initial_states['x', 'q10'].T, initial_states['x', 'q10']) - (model.scaling['x']['l_t']*initial_states['x','l_t'])**2)
+    dc = cas.mtimes(initial_states['x', 'q10'].T, initial_states['x', 'dq10']) - model.scaling['x']['l_t']**2*initial_states['x','l_t']*initial_states['x','dl_t']
+    initial_conditions_eq_list += [c]
+
     initial_conditions_eq = cas.vertcat(*initial_conditions_eq_list)
 
     return initial_conditions_eq

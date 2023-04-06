@@ -305,7 +305,7 @@ def find_power_cost(nlp_options, V, P, Integral_outputs):
     elif nlp_options['cost']['PDGA']:
         power_cost = P['cost', 'power'] * (-1.) * average_power / (V['theta', 'ell_radius']**2)
     else:
-        power_cost = P['cost', 'power'] * (-1.) * average_power
+        power_cost = (-1.) * average_power
 
     return power_cost
 
