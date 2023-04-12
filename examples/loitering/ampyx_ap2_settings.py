@@ -47,7 +47,7 @@ def set_ampyx_ap2_settings(options):
     options['params.model_bounds.rot_angles'] = np.array([80.0*np.pi/180., 80.0*np.pi/180., 40.0*np.pi/180.0])
 
     # variable bounds
-    options['model.system_bounds.x.l_t'] =  [10.0, 700.0] # [m]
+    options['model.system_bounds.x.l_t'] =  [10.0, 3000.0] # [m]
     options['model.system_bounds.x.dl_t'] =  [-37.4, 37.4] # [m/s]
     options['model.ground_station.ddl_t_max'] = 3*9.81 # [m/s^2]
     options['model.system_bounds.x.q'] =  [np.array([-ca.inf, -ca.inf, 100.0]), np.array([ca.inf, ca.inf, ca.inf])]
