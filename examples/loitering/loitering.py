@@ -42,12 +42,13 @@ options['user_options.wind.u_ref'] = 0.0
 
 # indicate numerical nlp details
 # here: nlp discretization, with a zero-order-hold control parametrization, and a simple phase-fixing routine. also, specify a linear solver to perform the Newton-steps within ipopt.
-options['nlp.n_k'] = 100
+options['nlp.n_k'] = 200
 options['nlp.collocation.u_param'] = 'zoh'
 options['user_options.trajectory.lift_mode.phase_fix'] = 'simple'
 options['solver.linear_solver'] = 'ma57' # if HSL is installed, otherwise 'mumps'
 options['solver.mu_hippo'] = 1e-2
 options['solver.max_iter'] = 1000
+
 # build and optimize the NLP (trial)
 trial = awe.Trial(options, 'Ampyx_AP2')
 trial.build()
