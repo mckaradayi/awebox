@@ -98,8 +98,8 @@ def get_scaled_variable_bounds(nlp_options, V, model):
 
 def assign_phase_fix_bounds(nlp_options, model, vars_lb, vars_ub, coll_flag, var_type, kdx, ddx, name):
 
-    vars_lb['x', 0, 'l_t'] = 200.0/model.scaling['x']['l_t']
-    vars_ub['x', 0, 'l_t'] = 200.0/model.scaling['x']['l_t']
+    # vars_lb['x', 0, 'l_t'] = 200.0/model.scaling['x']['l_t']
+    # vars_ub['x', 0, 'l_t'] = 200.0/model.scaling['x']['l_t']
     vars_lb['x', 0, 'dl_t'] = 0.0
     vars_ub['x', 0, 'dl_t'] = 0.0
 

@@ -28,25 +28,27 @@ options = set_ampyx_ap2_settings(options)
 # here: lift-mode system with pumping-cycle operation, with a one winding trajectory
 options['user_options.trajectory.type'] = 'power_cycle'
 options['user_options.trajectory.system_type'] = 'lift_mode'
-options['user_options.trajectory.lift_mode.windings'] = 5
+options['user_options.trajectory.lift_mode.windings'] = 1 # number of initial loops
 
 # indicate desired environment
 # here: wind velocity profile according to power-law
 options['params.wind.z_ref'] = 100.0
 options['params.wind.power_wind.exp_ref'] = 0.15
 options['user_options.wind.model'] = 'power'
-options['user_options.wind.u_ref'] = 0.0
+options['user_options.wind.u_ref'] = 0.0 # reference wind speed
 
 # options['visualization.cosmetics.plot_ref'] = True
 # options['visualization.cosmetics.plot_bounds'] = True 
 
 # indicate numerical nlp details
 # here: nlp discretization, with a zero-order-hold control parametrization, and a simple phase-fixing routine. also, specify a linear solver to perform the Newton-steps within ipopt.
-options['nlp.n_k'] = 200
-options['nlp.collocation.u_param'] = 'zoh'
+options['nlp.n_k'] = 20 # number of intervals
+options['nlp.collocation.u_param'] = 'zoh' # zero-order-hold controls
 options['user_options.trajectory.lift_mode.phase_fix'] = 'simple'
 options['solver.linear_solver'] = 'ma57' # if HSL is installed, otherwise 'mumps'
-options['solver.mu_hippo'] = 1e-2
+
+# solver tuning parameters
+options['solver.mu_hippo'] = 1e-4
 options['solver.max_iter'] = 1000
 
 # build and optimize the NLP (trial)
@@ -57,40 +59,41 @@ intermediate_sol_design = copy.deepcopy(trial.solution_dict)
 trial.optimize(options_seed = options, warmstart_file = intermediate_sol_design, intermediate_solve=False, recalibrate_viz = True)
 trial.plot(['states', 'invariants', 'constraints', 'quad'])
 plt.show()
-
 trial.write_to_csv(file_name = 'climbing', frequency=10., rotation_representation='dcm')
 
 
 # fix params
-# fixed_params = {}
-# for theta in trial.model.variables_dict['theta'].keys():
-#     if theta != 't_f':
-#         fixed_params[theta] = trial.optimization.V_final['theta', theta].full()[0][0]
-# options['user_options.trajectory.fixed_params'] = fixed_params
+fixed_params = {}
+for theta in trial.model.variables_dict['theta'].keys():
+    if theta != 't_f':
+        fixed_params[theta] = trial.optimization.V_final['theta', theta].full()[0][0]
+options['user_options.trajectory.fixed_params'] = fixed_params
 
-# zmin = np.linspace(100, 1000, 10, endpoint=True)
+zmin = np.linspace(100, 3000, 30, endpoint=True)
+tf = np.linspace(20, 40, 10, endpoint = True)
 
-# hom_steps = 10
-# for idx, z in enumerate(zmin):
+hom_steps = 10
+for idx, z in enumerate(zmin):
 
-#     if idx > 0:
+    if idx > 0:
 
-#         for jdx in range(1, hom_steps+1):
+        for jdx in range(1, hom_steps+1):
 
-#             step = jdx/hom_steps
-#             z_lb = (1-step)*zmin[idx-1] + step*z
-#             options['model.system_bounds.x.q'] =  [np.array([-ca.inf, -ca.inf, z_lb]), np.array([ca.inf, ca.inf, ca.inf])]
+            step = jdx/hom_steps
+            z_lb = (1-step)*zmin[idx-1] + step*z
+            tf_ub = (1-step)*tf[idx-1] + step*tf[idx]
+            options['model.system_bounds.x.q'] =  [np.array([-ca.inf, -ca.inf, z_lb]), np.array([ca.inf, ca.inf, ca.inf])]
+            options['model.system_bounds.theta.t_f'] =  [5.0, tf_ub]
+            print('================================')
+            print('Solve trial for z_lb = {} m'.format(options['model.system_bounds.x.q']))
+            print('================================')
 
-#             print('================================')
-#             print('Solve trial for z_lb = {} m'.format(options['model.system_bounds.x.q']))
-#             print('================================')
+            if idx == 1 and jdx == 1:
+                trial.optimize(options_seed = options, warmstart_file = intermediate_sol_design, intermediate_solve = True)
+            else:
+                trial.optimize(options_seed = options, warmstart_file = intermediate_sol, intermediate_solve = True)
 
-#             if idx == 1 and jdx == 1:
-#                 trial.optimize(options_seed = options, warmstart_file = intermediate_sol_design, intermediate_solve = True)
-#             else:
-#                 trial.optimize(options_seed = options, warmstart_file = intermediate_sol, intermediate_solve = True)
+            intermediate_sol = copy.deepcopy(trial.solution_dict)
 
-#             intermediate_sol = copy.deepcopy(trial.solution_dict)
-
-#         trial.optimize(options_seed = options, warmstart_file = intermediate_sol, intermediate_solve=False, recalibrate_viz=False)
-#         trial.write_to_csv(file_name = 'loitering_z{}'.format(round(z)), frequency=10., rotation_representation='dcm')
+        trial.optimize(options_seed = options, warmstart_file = intermediate_sol, intermediate_solve=False, recalibrate_viz=False)
+        trial.write_to_csv(file_name = 'loitering_z{}'.format(round(z)), frequency=10., rotation_representation='dcm')

@@ -514,13 +514,13 @@ def plot_trajectory_contents(ax, plot_dict, cosmetics, side, init_colors=bool(Fa
 
         for dim in range(3):
             traj.append(
-                cas.vertcat(plot_dict['x']['q' + str(kite) + str(parent)][dim])#,
+                cas.vertcat(plot_dict['x']['q' + str(kite) + str(parent)][dim][:-1])#,
             )
             if cosmetics['plot_ref']:
-                traj_ref.append(cas.vertcat(plot_dict['ref']['x']['q' + str(kite) + str(parent)][dim]))
+                traj_ref.append(cas.vertcat(plot_dict['ref']['x']['q' + str(kite) + str(parent)][dim][:-1]))
 
             for dim in range(9):
-                rot.append(plot_dict['outputs']['aerodynamics']['r' + str(kite)][dim])
+                rot.append(plot_dict['outputs']['aerodynamics']['r' + str(kite)][dim][:-1])
 
         kite_locations.append(traj)
         kite_ref_locations.append(traj_ref)

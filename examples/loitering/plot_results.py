@@ -40,7 +40,7 @@ textwidth  = 9.46637 # inches
 # FIGURE 4: Local solution comparison
 # =======================================
 
-name = 'climbing'
+name = 'loitering_z1000'
 traj_dict = {}
 # List of keys
 with open(filefolder+name+'.csv', 'r') as csvfile:
@@ -172,8 +172,8 @@ for key in traj_dict.keys():
     # plot tether projections
     idx_ymin = np.argmin(ref_state_1)
     idx_ymax = np.argmax(ref_state_1)
-    ax.plot([0, 0], [0, ymin], [0, ref_state_2[idx_ymin]], linewidth = 0.1, color = 'black')
-    ax.plot([0, 0], [0, ymax], [0, ref_state_2[idx_ymax]], linewidth = 0.1, color = 'black')
+    # ax.plot([0, 0], [0, ymin], [0, ref_state_2[idx_ymin]], linewidth = 0.1, color = 'black')
+    # ax.plot([0, 0], [0, ymax], [0, ref_state_2[idx_ymax]], linewidth = 0.1, color = 'black')
     ax.plot([0, ref_state_0[idx_ymin]], [0, ymin], [0, 0], linewidth = 0.1, color = 'black')
     ax.plot([0, ref_state_0[idx_ymax]], [0, ymax], [0, 0], linewidth = 0.1, color = 'black')
 

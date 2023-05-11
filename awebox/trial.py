@@ -245,9 +245,11 @@ class Trial(object):
         time_period = self.__optimization.global_outputs_opt['time_period'].full()[0][0]
         avg_power = e_final / time_period
 
+        climb_rate = self.__optimization.V_final['x',-1, 'q10'][2] - self.__optimization.V_final['x',0, 'q10'][2] 
+        climb_rate = climb_rate / time_period
         headers = ['Parameter / output', 'Optimal value', 'Dimension']
 
-        table = [['Average power output', str(avg_power/1e3), 'kW']]
+        table = [['Average climb rate', str(climb_rate), 'm/s']]
         table.append(['Time period', str(time_period), 's'])
         import numpy as np
         theta_info = {

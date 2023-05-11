@@ -51,10 +51,10 @@ def set_ampyx_ap2_settings(options):
     options['model.system_bounds.x.dl_t'] =  [-37.4, 37.4] # [m/s]
     options['model.ground_station.ddl_t_max'] = 3*9.81 # [m/s^2]
     options['model.system_bounds.x.q'] =  [np.array([-ca.inf, -ca.inf, 100.0]), np.array([ca.inf, ca.inf, ca.inf])]
-    options['model.system_bounds.theta.t_f'] =  [5.0, 200.0] # [s]
+    options['model.system_bounds.theta.t_f'] =  [5.0, 20.0] # time period bounds [s]
     options['model.system_bounds.theta.diam_t'] =  [1e-3, 1] # [s]
-    options['model.system_bounds.z.lambda'] =  [0., ca.inf] # [N/m]
-    omega_bound = 50.0*np.pi/180.0
+    options['model.system_bounds.z.lambda'] =  [0., ca.inf] #  Lagrange multiplier should be positive [N/m]
+    omega_bound = 50.0*np.pi/180.0 # angular velocity limits
     options['model.system_bounds.x.omega'] = [np.array(3*[-omega_bound]), np.array(3*[omega_bound])]
     options['user_options.kite_standard.geometry.delta_max'] = np.array([20., 30., 30.]) * np.pi / 180.
     options['user_options.kite_standard.geometry.ddelta_max'] = np.array([2., 2., 2.])
