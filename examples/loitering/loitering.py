@@ -70,7 +70,7 @@ for theta in trial.model.variables_dict['theta'].keys():
 options['user_options.trajectory.fixed_params'] = fixed_params
 
 zmin = np.linspace(100, 3000, 30, endpoint=True)
-tf = np.linspace(20, 40, 10, endpoint = True)
+tf = np.linspace(20, 40, 30, endpoint = True)
 
 hom_steps = 10
 for idx, z in enumerate(zmin):
