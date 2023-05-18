@@ -41,3 +41,7 @@ experimental/
 *.srctrlbm
 *.srctrldb
 *.srctrlprj
+
+
+# Results
+results/

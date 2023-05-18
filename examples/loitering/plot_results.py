@@ -40,7 +40,7 @@ textwidth  = 9.46637 # inches
 # FIGURE 4: Local solution comparison
 # =======================================
 
-name = 'loitering_z1000'
+name = 'loitering_z3000'
 traj_dict = {}
 # List of keys
 with open(filefolder+name+'.csv', 'r') as csvfile:

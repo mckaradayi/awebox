@@ -12,7 +12,7 @@ def set_ampyx_ap2_settings(options):
     # tether parameters
     options['params.tether.cd'] = 1.2
     options['params.tether.rho'] = 0.0046*4/(np.pi*0.002**2)
-    # options['user_options.trajectory.fixed_params'] = {'diam_t': 2e-3}
+    options['user_options.trajectory.fixed_params'] = {'diam_t': 5e-4}
     options['model.tether.use_wound_tether'] = False # don't model generator inertia
     options['model.tether.control_var'] = 'ddl_t' # tether acceleration control
 

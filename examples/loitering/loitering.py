@@ -13,10 +13,21 @@ Energy, Vol.173, pp. 569-585, 2019.
 
 import awebox as awe
 from ampyx_ap2_settings import set_ampyx_ap2_settings
+from datetime import datetime
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
 import casadi as ca
+
+# ask user to enter a suffix for results
+description_suffix = input('Enter a test suffix\n')
+# timestamp for suffix 
+timestamp_suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
+# full suffix
+full_suffix = f"{timestamp_suffix}_{description_suffix}"
+# create a directory named the full_suffix
+os.makedirs(f"./results/{full_suffix}")
 
 # indicate desired system architecture
 # here: single kite with 6DOF Ampyx AP2 model
@@ -45,7 +56,7 @@ options['user_options.wind.u_ref'] = 0.0 # reference wind speed
 options['nlp.n_k'] = 20 # number of intervals
 options['nlp.collocation.u_param'] = 'zoh' # zero-order-hold controls
 options['user_options.trajectory.lift_mode.phase_fix'] = 'simple'
-options['solver.linear_solver'] = 'ma57' # if HSL is installed, otherwise 'mumps'
+options['solver.linear_solver'] = 'mumps' # if HSL is installed, otherwise 'mumps'
 
 # solver tuning parameters
 options['solver.mu_hippo'] = 1e-4
@@ -58,8 +69,9 @@ trial.optimize(intermediate_solve=True)
 intermediate_sol_design = copy.deepcopy(trial.solution_dict)
 trial.optimize(options_seed = options, warmstart_file = intermediate_sol_design, intermediate_solve=False, recalibrate_viz = True)
 trial.plot(['states', 'invariants', 'constraints', 'quad'])
-plt.show()
-trial.write_to_csv(file_name = 'climbing', frequency=10., rotation_representation='dcm')
+# plt.show()
+plt.savefig(f'./results/{full_suffix}/plots_initial.pdf')
+trial.write_to_csv(file_name = f'./results/{full_suffix}/data_initial', frequency=10., rotation_representation='dcm')
 
 
 # fix params
@@ -69,8 +81,8 @@ for theta in trial.model.variables_dict['theta'].keys():
         fixed_params[theta] = trial.optimization.V_final['theta', theta].full()[0][0]
 options['user_options.trajectory.fixed_params'] = fixed_params
 
-zmin = np.linspace(100, 3000, 30, endpoint=True)
-tf = np.linspace(20, 40, 30, endpoint = True)
+zmin = np.linspace(100, 4000, 40, endpoint=True)
+tf = np.linspace(20, 40, 40, endpoint = True)
 
 hom_steps = 10
 for idx, z in enumerate(zmin):
@@ -96,4 +108,6 @@ for idx, z in enumerate(zmin):
             intermediate_sol = copy.deepcopy(trial.solution_dict)
 
         trial.optimize(options_seed = options, warmstart_file = intermediate_sol, intermediate_solve=False, recalibrate_viz=False)
-        trial.write_to_csv(file_name = 'loitering_z{}'.format(round(z)), frequency=10., rotation_representation='dcm')
+        trial.plot(['states', 'invariants', 'constraints', 'quad'])
+        plt.savefig(f'./results/{full_suffix}/plots_z{round(z)}.pdf')
+        trial.write_to_csv(file_name = f'./results/{full_suffix}/data_z{round(z)}', frequency=10., rotation_representation='dcm')
